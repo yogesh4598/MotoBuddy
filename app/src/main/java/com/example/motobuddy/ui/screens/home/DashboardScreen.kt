@@ -1,10 +1,15 @@
 package com.example.motobuddy.ui.screens.home
 
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,33 +19,28 @@ import androidx.compose.material.icons.automirrored.filled.AltRoute
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CloudQueue
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.LocalGasStation
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.outlined.BookmarkBorder
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material.icons.filled.Explore
-import androidx.compose.material.icons.filled.SmartToy
-import androidx.compose.runtime.LaunchedEffect
-import kotlinx.coroutines.delay
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -49,18 +49,33 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.motobuddy.R
+import com.example.motobuddy.data.repository.MotoRepository
 import com.example.motobuddy.navigation.Screen
-import com.example.motobuddy.ui.theme.MotoBuddyTheme
+import com.example.motobuddy.ui.theme.*
+import kotlinx.coroutines.delay
+
+data class CarouselSlide(
+    val kicker: String,
+    val title: String,
+    val subtitle: String,
+    val imageRes: Int
+)
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DashboardScreen(navController: NavController) {
-    val backgroundColor = Color(0xFF09090B)
-    val cardColor = Color(0xFF18181B)
-    val cardColorLighter = Color(0xFF27272A)
-    val textWhite = Color(0xFFFAFAFA)
-    val textGrey = Color(0xFFA1A1AA)
-    val primaryOrange = Color(0xFFFF4500)
+    val context = LocalContext.current
+    val repository = remember { MotoRepository(context) }
+    val motorcycle = remember { repository.getMotorcycle() }
+    val recentTrip = remember { repository.getSavedTrips().firstOrNull() }
+
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val cardColor = MaterialTheme.colorScheme.surface
+    val cardColorLighter = MaterialTheme.colorScheme.surfaceVariant
+    val textWhite = MaterialTheme.colorScheme.onBackground
+    val textGrey = MaterialTheme.colorScheme.onSurfaceVariant
+    val primaryCyan = MaterialTheme.colorScheme.primary
+    val secondaryOrange = MaterialTheme.colorScheme.secondary
 
     Scaffold(
         containerColor = backgroundColor,
@@ -77,7 +92,7 @@ fun DashboardScreen(navController: NavController) {
                     Icon(
                         imageVector = Icons.Default.Tune,
                         contentDescription = "Logo",
-                        tint = primaryOrange,
+                        tint = primaryCyan,
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -89,7 +104,7 @@ fun DashboardScreen(navController: NavController) {
                     )
                 }
                 Text(
-                    text = "DASHBOARD / 04",
+                    text = "DASHBOARD",
                     color = textGrey,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
@@ -107,7 +122,7 @@ fun DashboardScreen(navController: NavController) {
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Current Location Header
+            // Current Location & Rider Greeting
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -117,15 +132,16 @@ fun DashboardScreen(navController: NavController) {
                         .size(48.dp)
                         .clip(CircleShape)
                         .background(cardColor)
+                        .border(1.dp, primaryCyan, CircleShape)
                         .clickable { navController.navigate(Screen.MyProfile.route) },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(imageVector = Icons.Default.Person, contentDescription = "Profile", tint = textGrey)
+                    Icon(imageVector = Icons.Default.Person, contentDescription = "Profile", tint = primaryCyan)
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "CURRENT LOCATION", color = textGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    Text(text = "Pune, Maharashtra · Aarav", color = textWhite, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                    Text(text = "RIDER: ${motorcycle.ownerName.uppercase()}", color = textGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text(text = "${motorcycle.make} ${motorcycle.model} · ${motorcycle.odometerKm} km", color = textWhite, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 }
                 Icon(
                     imageVector = Icons.Default.NotificationsNone,
@@ -141,16 +157,16 @@ fun DashboardScreen(navController: NavController) {
 
             // Auto-Sliding Hero Section (Carousel)
             val slides = listOf(
-                CarouselSlide("WEEKEND, RECHARGED", "Take the scenic way.", "Discover new roads & cafes", R.drawable.moto_landscape),
-                CarouselSlide("SMART PLANNING", "Plan Your Dream Ride", "Routes, weather & fuel costs", R.drawable.moto_landscape),
-                CarouselSlide("AI MECHANIC", "Troubleshoot on the go", "Instant repair assistance", R.drawable.moto_landscape),
-                CarouselSlide("COMMUNITY", "Ride with the pack", "Join group rides & events", R.drawable.moto_landscape)
+                CarouselSlide("WEEKEND RECHARGED", "Take the scenic way.", "Discover new roads & scenic mountain passes", R.drawable.moto_landscape),
+                CarouselSlide("SMART PLANNING", "Plan Your Dream Ride", "Routes, weather & fuel cost estimation", R.drawable.moto_landscape),
+                CarouselSlide("AI MECHANIC", "Troubleshoot on the go", "Instant AI mechanical diagnostics & tips", R.drawable.moto_landscape),
+                CarouselSlide("COMMUNITY RIDES", "Ride with the pack", "Join group rides & trip invitations", R.drawable.moto_landscape)
             )
             val pagerState = rememberPagerState(pageCount = { slides.size })
 
             LaunchedEffect(Unit) {
                 while (true) {
-                    delay(3500)
+                    delay(4000)
                     val nextPage = (pagerState.currentPage + 1) % slides.size
                     pagerState.animateScrollToPage(nextPage)
                 }
@@ -161,7 +177,8 @@ fun DashboardScreen(navController: NavController) {
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
                     .background(cardColor)
-                    .padding(20.dp)
+                    .border(1.dp, cardColorLighter, RoundedCornerShape(16.dp))
+                    .padding(16.dp)
             ) {
                 Column {
                     HorizontalPager(
@@ -179,23 +196,23 @@ fun DashboardScreen(navController: NavController) {
                                     .clip(RoundedCornerShape(12.dp))
                             )
                             Spacer(modifier = Modifier.height(16.dp))
-                            Text(text = slides[page].kicker, color = primaryOrange, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(text = slides[page].title, color = textWhite, fontSize = 28.sp, fontWeight = FontWeight.Bold, lineHeight = 34.sp)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(text = slides[page].subtitle, color = textGrey, fontSize = 14.sp)
+                            Text(text = slides[page].kicker, color = secondaryOrange, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(text = slides[page].title, color = textWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold, lineHeight = 28.sp)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(text = slides[page].subtitle, color = textGrey, fontSize = 13.sp)
                         }
                     }
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
+
                     // Pager Indicators
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.Center
                     ) {
                         repeat(slides.size) { iteration ->
-                            val color = if (pagerState.currentPage == iteration) primaryOrange else Color.DarkGray
+                            val color = if (pagerState.currentPage == iteration) primaryCyan else Color.DarkGray
                             Box(
                                 modifier = Modifier
                                     .padding(horizontal = 4.dp)
@@ -217,205 +234,121 @@ fun DashboardScreen(navController: NavController) {
             ) {
                 Button(
                     onClick = { navController.navigate(Screen.TripPlanning.route) },
-                    colors = ButtonDefaults.buttonColors(containerColor = primaryOrange),
+                    colors = ButtonDefaults.buttonColors(containerColor = primaryCyan),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
                         .weight(1f)
                         .height(50.dp)
                 ) {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.AltRoute, contentDescription = "Plan", tint = Color.Black, modifier = Modifier.size(18.dp))
+                    Icon(imageVector = Icons.AutoMirrored.Filled.AltRoute, contentDescription = "Plan", tint = MidnightNavy, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "Plan a Ride", color = Color.Black, fontWeight = FontWeight.Bold)
+                    Text(text = "Plan a Ride", color = MidnightNavy, fontWeight = FontWeight.Bold)
                 }
 
                 Button(
-                    onClick = { navController.navigate(Screen.Search.route) },
+                    onClick = { navController.navigate(Screen.FuelCostCalculator.route) },
                     colors = ButtonDefaults.buttonColors(containerColor = cardColor),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
                         .weight(1f)
                         .height(50.dp)
                 ) {
-                    Icon(imageVector = Icons.Outlined.BookmarkBorder, contentDescription = "Search", tint = textWhite, modifier = Modifier.size(18.dp))
+                    Icon(imageVector = Icons.Default.LocalGasStation, contentDescription = "Fuel", tint = secondaryOrange, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "Quick Search", color = textWhite, fontWeight = FontWeight.Bold)
+                    Text(text = "Fuel Cost", color = textWhite, fontWeight = FontWeight.Bold)
                 }
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            Text(text = "QUICK ACCESS", color = textGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Text(text = "QUICK ACCESS DASHBOARD", color = textGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Quick Access Grid (Improved Accessibility & Practicality)
+            // Quick Access Grid
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                QuickAccessItem(Icons.Default.LocalGasStation, "Fuel", "Log & track", modifier = Modifier.weight(1f)) {
-                    navController.navigate(Screen.FuelCostCalculator.route)
+                QuickAccessItem(Icons.Default.SmartToy, "AI Mechanic", "Troubleshoot", accentColor = primaryCyan, modifier = Modifier.weight(1f)) {
+                    navController.navigate(Screen.MechanicAssistant.route)
                 }
-                QuickAccessItem(Icons.Default.Build, "Garage", "Bike health", modifier = Modifier.weight(1f)) {
+                QuickAccessItem(Icons.Default.Build, "Garage", "Service log", accentColor = secondaryOrange, modifier = Modifier.weight(1f)) {
                     navController.navigate(Screen.MyBike.route)
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                QuickAccessItem(Icons.Default.WbSunny, "Weather", "Live conditions", modifier = Modifier.weight(1f)) {
+                QuickAccessItem(Icons.Default.WbSunny, "Weather", "Road status", accentColor = primaryCyan, modifier = Modifier.weight(1f)) {
                     navController.navigate(Screen.WeatherRoadConditions.route)
                 }
-                QuickAccessItem(Icons.Default.LocationOn, "Services", "Nearby shops", modifier = Modifier.weight(1f)) {
-                    navController.navigate(Screen.NearbyRepairShops.route)
+                QuickAccessItem(Icons.Default.LocationOn, "Petrol Pumps", "Maps intent", accentColor = secondaryOrange, modifier = Modifier.weight(1f)) {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=petrol+pump"))
+                    context.startActivity(intent)
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                QuickAccessItem(Icons.Default.Security, "Safety", "SOS & Tips", modifier = Modifier.weight(1f)) {
+                QuickAccessItem(Icons.Default.Security, "Safety SOS", "Emergency", accentColor = ErrorRed, modifier = Modifier.weight(1f)) {
                     navController.navigate(Screen.Safety.route)
                 }
-                QuickAccessItem(Icons.Default.People, "Community", "Group rides", modifier = Modifier.weight(1f)) {
-                    navController.navigate(Screen.GroupRides.route)
+                QuickAccessItem(Icons.Default.People, "Community", "Group rides", accentColor = primaryCyan, modifier = Modifier.weight(1f)) {
+                    navController.navigate(Screen.Community.route)
                 }
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Weather Summary
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = cardColor),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "WEATHER SUMMARY", color = textGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                        Text(text = "Demo only", color = primaryOrange, fontSize = 10.sp)
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = Icons.Default.CloudQueue, contentDescription = "Weather", tint = primaryOrange, modifier = Modifier.size(48.dp))
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Text(text = "24°", color = textWhite, fontSize = 48.sp, fontWeight = FontWeight.Bold)
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(text = "Pune · Demo weather · 26 Oct 09:00", color = textGrey, fontSize = 12.sp)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Icon(imageVector = Icons.Default.WarningAmber, contentDescription = "Warning", tint = primaryOrange, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Column {
-                            Text(text = "Extra caution advised", color = primaryOrange, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(text = "Illustrative risk only. Never guarantees a safe road.", color = textGrey, fontSize = 12.sp, lineHeight = 16.sp)
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Beyond the city
-            Row(
-                modifier = Modifier.fillMaxWidth(), 
-                horizontalArrangement = Arrangement.SpaceBetween, 
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = "Beyond the city", color = textWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                Text(
-                    text = "Explore all", 
-                    color = primaryOrange, 
-                    fontSize = 12.sp, 
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.clickable { navController.navigate(Screen.ScenicRoutes.route) }
-                )
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = cardColor),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column {
-                    Image(
-                        painter = painterResource(id = R.drawable.moto_landscape),
-                        contentDescription = "Landscape",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(140.dp)
+            // Recent Planned Trip Summary
+            if (recentTrip != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = "Pick up where you left off", color = textWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = "View trips",
+                        color = primaryCyan,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.clickable { navController.navigate(Screen.TripHistory.route) }
                     )
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(text = "Dhom Lake, Wai", color = textWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(text = "Reservoir roads · Scenic stop on your route", color = textGrey, fontSize = 12.sp)
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = "98 km", color = primaryOrange, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            Icon(imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Arrow", tint = textGrey)
-                        }
-                    }
                 }
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Pick up where you left off
-            Row(
-                modifier = Modifier.fillMaxWidth(), 
-                horizontalArrangement = Arrangement.SpaceBetween, 
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = "Pick up where you left off", color = textWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                Text(
-                    text = "View trips", 
-                    color = primaryOrange, 
-                    fontSize = 12.sp, 
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.clickable { navController.navigate(Screen.TripHistory.route) }
-                )
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = cardColor),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(text = "RECENT PLAN · 01 NOV 2026", color = textGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = "Pune -> Mahabaleshwar", color = textWhite, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Column {
-                            Text(text = "120 km", color = textWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                            Text(text = "One-way", color = textGrey, fontSize = 12.sp)
+                Spacer(modifier = Modifier.height(16.dp))
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = cardColor),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(text = "SAVED ROUTE · ${recentTrip.date}", color = textGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(text = "${recentTrip.startLocation} → ${recentTrip.destination}", color = textWhite, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Column {
+                                Text(text = "${recentTrip.distanceKm.toInt()} km", color = textWhite, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                                Text(text = "Distance", color = textGrey, fontSize = 12.sp)
+                            }
+                            Column {
+                                Text(text = "₹${recentTrip.fuelCostEst.toInt()}", color = secondaryOrange, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                                Text(text = "Est. Fuel Cost", color = textGrey, fontSize = 12.sp)
+                            }
+                            Column {
+                                Text(text = "${recentTrip.estDurationHours} hrs", color = textWhite, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                                Text(text = "Duration", color = textGrey, fontSize = 12.sp)
+                            }
                         }
-                        Column {
-                            Text(text = "₹420", color = textWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                            Text(text = "Estimated fuel", color = textGrey, fontSize = 12.sp)
+                        Spacer(modifier = Modifier.height(20.dp))
+                        Button(
+                            onClick = { navController.navigate(Screen.TripPlanning.route) },
+                            colors = ButtonDefaults.buttonColors(containerColor = cardColorLighter),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(46.dp)
+                        ) {
+                            Icon(imageVector = Icons.Outlined.BookmarkBorder, contentDescription = "Continue", tint = primaryCyan, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(text = "Open Trip Planner", color = textWhite, fontWeight = FontWeight.SemiBold)
                         }
-                        Column {
-                            Text(text = "3h 10m", color = textWhite, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                            Text(text = "Demo duration", color = textGrey, fontSize = 12.sp)
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Button(
-                        onClick = { navController.navigate(Screen.TripPlanning.route) },
-                        colors = ButtonDefaults.buttonColors(containerColor = cardColorLighter),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp)
-                    ) {
-                        Icon(imageVector = Icons.Outlined.BookmarkBorder, contentDescription = "Continue", tint = textWhite, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = "Continue planning", color = textWhite, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -426,41 +359,41 @@ fun DashboardScreen(navController: NavController) {
 }
 
 @Composable
-fun QuickAccessItem(icon: ImageVector, label: String, desc: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+fun QuickAccessItem(
+    icon: ImageVector,
+    label: String,
+    desc: String,
+    accentColor: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFF18181B))
+            .background(CardBackground)
             .border(1.dp, Color(0xFF27272A), RoundedCornerShape(16.dp))
             .clickable { onClick() }
-            .padding(16.dp),
+            .padding(14.dp),
         contentAlignment = Alignment.CenterStart
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(38.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF27272A)),
+                    .background(DarkGraphite),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(imageVector = icon, contentDescription = label, tint = Color(0xFFFF4500), modifier = Modifier.size(20.dp))
+                Icon(imageVector = icon, contentDescription = label, tint = accentColor, modifier = Modifier.size(18.dp))
             }
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(10.dp))
             Column {
-                Text(text = label, color = Color(0xFFFAFAFA), fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                Text(text = desc, color = Color(0xFFA1A1AA), fontSize = 11.sp)
+                Text(text = label, color = TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Text(text = desc, color = TextSecondary, fontSize = 10.sp)
             }
         }
     }
 }
-
-data class CarouselSlide(
-    val kicker: String,
-    val title: String,
-    val subtitle: String,
-    val imageRes: Int
-)
 
 @Preview(showBackground = true)
 @Composable

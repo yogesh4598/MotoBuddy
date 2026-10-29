@@ -1,108 +1,185 @@
 package com.example.motobuddy.ui.screens.maintenance
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.border
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
-import com.example.motobuddy.ui.theme.MotoBuddyTheme
+import com.example.motobuddy.data.repository.MotoRepository
+import com.example.motobuddy.ui.theme.*
+import kotlinx.coroutines.launch
 
+data class ChatMessage(
+    val sender: String, // "USER" or "AI"
+    val text: String,
+    val isWarning: Boolean = false
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MechanicAssistantScreen(navController: NavController) {
-    val backgroundColor = Color(0xFF09090B)
-    val cardColor = Color(0xFF18181B)
-    val textWhite = Color(0xFFFAFAFA)
-    val textGrey = Color(0xFFA1A1AA)
-    val primaryOrange = Color(0xFFFF4500)
-    val darkButtonColor = Color(0xFF27272A)
-    val alertRed = Color(0xFFE53935)
-    val alertRedBg = Color(0xFF2D1616)
+    val context = LocalContext.current
+    val repository = remember { MotoRepository(context) }
+    val motorcycle = remember { repository.getMotorcycle() }
+
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val cardColor = MaterialTheme.colorScheme.surface
+    val primaryCyan = MaterialTheme.colorScheme.primary
+    val secondaryOrange = MaterialTheme.colorScheme.secondary
+    val textWhite = MaterialTheme.colorScheme.onBackground
+    val textGrey = MaterialTheme.colorScheme.onSurfaceVariant
 
     var inputMessage by remember { mutableStateOf("") }
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+
+    // Chat History
+    val messages = remember {
+        mutableStateListOf(
+            ChatMessage(
+                sender = "AI",
+                text = "Hello! I am your MotoBuddy Offline AI Mechanic. I can help troubleshoot starting issues, battery concerns, brake noise, or chain maintenance for your ${motorcycle.make} ${motorcycle.model}.\n\nHow is your bike behaving?"
+            )
+        )
+    }
+
+    fun handleUserSendMessage(userText: String) {
+        if (userText.isBlank()) return
+        val trimmed = userText.trim()
+        messages.add(ChatMessage(sender = "USER", text = trimmed))
+        inputMessage = ""
+
+        coroutineScope.launch {
+            listState.animateScrollToItem(messages.size - 1)
+        }
+
+        // Generate Offline AI Assistant Response
+        val lower = trimmed.lowercase()
+        val aiResponse: ChatMessage = when {
+            lower.contains("brake") || lower.contains("stop") -> {
+                ChatMessage(
+                    sender = "AI",
+                    text = "⚠️ SAFETY WARNING: Brake issues are critical!\n\n1. If your brake lever feels spongy, check the brake fluid reservoir level.\n2. Squealing noises usually indicate worn brake pads.\n3. Do NOT ride if braking power is reduced. Inspect pads immediately or visit a service shop.",
+                    isWarning = true
+                )
+            }
+            lower.contains("start") || lower.contains("click") || lower.contains("battery") || lower.contains("dead") -> {
+                ChatMessage(
+                    sender = "AI",
+                    text = "Starting Issue Diagnostics:\n\n1. Rapid clicking sound when pressing ignition usually means low battery voltage.\n2. Ensure the kill switch is set to RUN and side stand is UP in gear.\n3. Check terminal connections for corrosion.\n4. If headlights are dim, jump-start or charge the 12V battery."
+                )
+            }
+            lower.contains("heat") || lower.contains("hot") || lower.contains("coolant") || lower.contains("smoke") -> {
+                ChatMessage(
+                    sender = "AI",
+                    text = "⚠️ OVERHEATING ALERT:\n\n1. Immediately pull over safely and switch off the engine!\n2. Check if radiator fan is running (if liquid cooled).\n3. Allow engine to cool 20+ minutes before opening coolant/oil caps.\n4. Check for oil or coolant leaks underneath.",
+                    isWarning = true
+                )
+            }
+            lower.contains("chain") || lower.contains("slack") || lower.contains("noise") -> {
+                ChatMessage(
+                    sender = "AI",
+                    text = "Drive Chain Advice:\n\n1. Ideal chain slack is 25-35 mm.\n2. Clean with O-ring safe chain cleaner every 500 km and lube with EP lube.\n3. Rattling or clicking noises while rolling indicate uneven chain stretch or worn sprockets."
+                )
+            }
+            lower.contains("oil") || lower.contains("filter") -> {
+                ChatMessage(
+                    sender = "AI",
+                    text = "Engine Oil Guidance:\n\nFor your ${motorcycle.model}, check oil level using the sight glass/dipstick with the bike held upright on level ground. Top up with manufacturer-recommended grade (e.g. 15W-50 Semi/Full Synthetic) if below the MIN line."
+                )
+            }
+            else -> {
+                ChatMessage(
+                    sender = "AI",
+                    text = "I received your note about '${trimmed}'.\n\nTo help narrow this down: Is the issue related to starting, electrical/battery, unusual engine noise, or braking? Feel free to tap one of the suggested diagnostic chips below!"
+                )
+            }
+        }
+
+        messages.add(aiResponse)
+        coroutineScope.launch {
+            listState.animateScrollToItem(messages.size - 1)
+        }
+    }
 
     Scaffold(
         containerColor = backgroundColor,
         topBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-                    .statusBarsPadding(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Mock Logo
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Tune, // MotoBuddy Logo placeholder
-                        contentDescription = "Logo",
-                        tint = primaryOrange,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "MotoBuddy",
-                        color = textWhite,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+            TopAppBar(
+                title = {
+                    Column {
+                        Text("AI Mechanic Assistant", color = textWhite, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("Offline Diagnostic Engine · ${motorcycle.model}", color = primaryCyan, fontSize = 11.sp)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = backgroundColor),
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = primaryCyan)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = {
+                        messages.clear()
+                        messages.add(
+                            ChatMessage(
+                                sender = "AI",
+                                text = "Chat cleared. What motorcycle symptom should we diagnose?"
+                            )
+                        )
+                    }) {
+                        Icon(imageVector = Icons.Default.DeleteSweep, contentDescription = "Clear", tint = textGrey)
+                    }
                 }
-                Text(
-                    text = "MECHANIC / 17",
-                    color = textGrey,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
-                )
-            }
+            )
         },
         bottomBar = {
             Surface(color = backgroundColor, modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp).navigationBarsPadding(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedTextField(
-                        value = inputMessage,
-                        onValueChange = { inputMessage = it },
-                        modifier = Modifier.weight(1f),
-                        placeholder = { Text("Describe your bike's symptoms...", color = Color.Gray, fontSize = 14.sp) },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = primaryOrange,
-                            unfocusedBorderColor = cardColor,
-                            focusedTextColor = textWhite,
-                            unfocusedTextColor = textWhite,
-                            focusedContainerColor = cardColor,
-                            unfocusedContainerColor = cardColor
-                        ),
-                        shape = RoundedCornerShape(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    IconButton(
-                        onClick = { /* TODO */ },
-                        modifier = Modifier
-                            .background(primaryOrange, RoundedCornerShape(12.dp))
-                            .size(48.dp)
-                    ) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = Color.Black)
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp).navigationBarsPadding()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedTextField(
+                            value = inputMessage,
+                            onValueChange = { inputMessage = it },
+                            modifier = Modifier.weight(1f),
+                            placeholder = { Text("Ask about starting, battery, noises...", color = textGrey, fontSize = 13.sp) },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = primaryCyan,
+                                unfocusedBorderColor = cardColor,
+                                focusedTextColor = textWhite,
+                                unfocusedTextColor = textWhite,
+                                focusedContainerColor = cardColor,
+                                unfocusedContainerColor = cardColor
+                            ),
+                            shape = RoundedCornerShape(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = { handleUserSendMessage(inputMessage) },
+                            modifier = Modifier
+                                .background(primaryCyan, CircleShape)
+                                .size(48.dp)
+                        ) {
+                            Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = MidnightNavy)
+                        }
                     }
                 }
             }
@@ -113,274 +190,93 @@ fun MechanicAssistantScreen(navController: NavController) {
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp)
-                .verticalScroll(rememberScrollState())
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Headline
-            Text(
-                text = "MotoBuddy Mechanic —\nYour Bike Troubleshooting\nAssistant",
-                color = textWhite,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                lineHeight = 34.sp
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Info Box
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(cardColor)
-                    .padding(16.dp),
-                verticalAlignment = Alignment.Top
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = "Info",
-                    tint = textGrey,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = "Planned feature · Not an implemented AI",
-                        color = textWhite,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Demo of a future custom-trained ML classifier + curated repair knowledge base. No validated diagnosis or live chat.",
-                        color = textGrey,
-                        fontSize = 12.sp,
-                        lineHeight = 16.sp
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-            Text(
-                text = "Selected motorcycle",
-                color = textGrey,
-                fontSize = 12.sp
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            // Selected Motorcycle Card
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(cardColor)
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Himalayan 411 · Aarav",
-                    color = textWhite,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Icon(
-                    imageVector = Icons.Default.Tune,
-                    contentDescription = "Select",
-                    tint = textGrey,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Chat Bubbles
-            // Bot message
-            Column(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "MOTOBUDDY · CURATED DEMO",
-                    color = textGrey,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomEnd = 16.dp, bottomStart = 4.dp))
-                        .background(cardColor)
-                        .padding(16.dp)
-                ) {
-                    Text(
-                        text = "Hi Aarav. Describe what you notice and I'll help you explore possible causes and safe next steps. I can't confirm a fault.",
-                        color = textWhite,
-                        fontSize = 14.sp,
-                        lineHeight = 20.sp
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // User message
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.End
-            ) {
-                Text(
-                    text = "AARAV",
-                    color = textGrey,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 4.dp))
-                        .background(Color(0xFF3E2714)) // Darker orange-ish tint
-                        .padding(16.dp)
-                ) {
-                    Text(
-                        text = "My bike won't start. I hear a clicking sound and the headlight looks dim.",
-                        color = textWhite,
-                        fontSize = 14.sp,
-                        lineHeight = 20.sp
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Bot response
-            Column(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "MOTOBUDDY · CURATED DEMO",
-                    color = textGrey,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomEnd = 16.dp, bottomStart = 4.dp))
-                        .background(cardColor)
-                        .padding(16.dp)
-                ) {
-                    Text(
-                        text = "A weak battery or a connection issue is one possibility. Park safely, switch the ignition off and avoid repeated starting attempts. Any smoke, fuel smell or overheating?",
-                        color = textWhite,
-                        fontSize = 14.sp,
-                        lineHeight = 20.sp
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Alert Box
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(alertRedBg)
-                    .border(1.dp, alertRed.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
-                    .padding(16.dp),
-                verticalAlignment = Alignment.Top
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = "Alert",
-                    tint = alertRed,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = "Brake issue, fuel leak or overheating?",
-                        color = alertRed,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Stop riding, switch off safely and seek professional assistance. Don't attempt roadside repairs.",
-                        color = textGrey,
-                        fontSize = 12.sp,
-                        lineHeight = 16.sp
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Suggestions Chips
-            @Composable
-            fun SuggestionChip(text: String, isSelected: Boolean = false) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (isSelected) Color(0xFF3E2714) else cardColor)
-                        .border(1.dp, if (isSelected) primaryOrange else Color.Transparent, RoundedCornerShape(8.dp))
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
-                ) {
-                    Text(text = text, color = if (isSelected) primaryOrange else textWhite, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                }
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SuggestionChip("Bike won't start", true)
-                SuggestionChip("Engine overheating")
-            }
+            // Quick Symptom Chips
+            Text("QUICK DIAGNOSTIC SYMPTOMS", color = textGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             Spacer(modifier = Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SuggestionChip("Battery problem")
-                SuggestionChip("Low mileage")
-                SuggestionChip("Unusual noise")
+                AssistChip(
+                    onClick = { handleUserSendMessage("Bike won't start clicking sound") },
+                    label = { Text("Won't Start / Clicking", fontSize = 11.sp, color = textWhite) },
+                    colors = AssistChipDefaults.assistChipColors(containerColor = cardColor)
+                )
+                AssistChip(
+                    onClick = { handleUserSendMessage("Brake noise spongy lever") },
+                    label = { Text("Brake Noise", fontSize = 11.sp, color = textWhite) },
+                    colors = AssistChipDefaults.assistChipColors(containerColor = cardColor)
+                )
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            SuggestionChip("Brake issue")
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                AssistChip(
+                    onClick = { handleUserSendMessage("Engine overheating warning") },
+                    label = { Text("Engine Overheating", fontSize = 11.sp, color = ErrorRed) },
+                    colors = AssistChipDefaults.assistChipColors(containerColor = cardColor)
+                )
+                AssistChip(
+                    onClick = { handleUserSendMessage("Chain slack lube") },
+                    label = { Text("Chain Maintenance", fontSize = 11.sp, color = textWhite) },
+                    colors = AssistChipDefaults.assistChipColors(containerColor = cardColor)
+                )
+            }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            OutlinedButton(
-                onClick = { /* TODO */ },
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = textWhite),
-                border = BorderStroke(1.dp, Color.DarkGray),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
+            // Chat Messages List
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Tune,
-                    contentDescription = "Explore",
-                    tint = textWhite,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Explore symptoms step by step",
-                    color = textWhite,
-                    fontWeight = FontWeight.SemiBold
-                )
+                items(messages) { msg ->
+                    if (msg.sender == "USER") {
+                        // User bubble
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.End
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 4.dp))
+                                    .background(secondaryOrange.copy(alpha = 0.2f))
+                                    .border(1.dp, secondaryOrange, RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 4.dp))
+                                    .padding(14.dp)
+                            ) {
+                                Text(text = msg.text, color = textWhite, fontSize = 14.sp)
+                            }
+                        }
+                    } else {
+                        // AI bubble
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.Start
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(imageVector = Icons.Default.SmartToy, contentDescription = "AI", tint = primaryCyan, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("MOTOBUDDY AI MECHANIC", color = primaryCyan, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomEnd = 16.dp, bottomStart = 4.dp))
+                                    .background(if (msg.isWarning) Color(0xFF2D1616) else cardColor)
+                                    .border(1.dp, if (msg.isWarning) ErrorRed else Color(0xFF27272A), RoundedCornerShape(16.dp))
+                                    .padding(14.dp)
+                            ) {
+                                Text(
+                                    text = msg.text,
+                                    color = if (msg.isWarning) ErrorRed else textWhite,
+                                    fontSize = 13.sp,
+                                    lineHeight = 18.sp
+                                )
+                            }
+                        }
+                    }
+                }
             }
-            
-            Spacer(modifier = Modifier.height(32.dp))
+
+            Spacer(modifier = Modifier.height(8.dp))
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun MechanicAssistantScreenPreview() {
-    MotoBuddyTheme {
-        MechanicAssistantScreen(navController = rememberNavController())
     }
 }
