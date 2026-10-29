@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -20,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.motobuddy.mapping.UnconfiguredMappingEngine
 import com.example.motobuddy.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,10 +36,10 @@ fun NearbyRepairShopsScreen(navController: NavController) {
     val textWhite = MaterialTheme.colorScheme.onBackground
     val textGrey = MaterialTheme.colorScheme.onSurfaceVariant
 
-    fun launchMapsSearch(query: String) {
-        val gmmIntentUri = Uri.parse("geo:0,0?q=$query")
-        val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
-        context.startActivity(mapIntent)
+    fun launchGeoSearch(query: String) {
+        val geoUri = Uri.parse("geo:0,0?q=${Uri.encode(query)}")
+        val mapIntent = Intent(Intent.ACTION_VIEW, geoUri)
+        context.startActivity(Intent.createChooser(mapIntent, "Search Places with:"))
     }
 
     Scaffold(
@@ -62,6 +64,26 @@ fun NearbyRepairShopsScreen(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(8.dp))
+
+            // Open Source Mapping Notice
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(cardColor)
+                    .border(1.dp, primaryCyan.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                    .padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(imageVector = Icons.Default.Info, contentDescription = "Info", tint = primaryCyan, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text("Place Search: Open-Source Layer", color = textWhite, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(UnconfiguredMappingEngine.getStatusMessage(), color = textGrey, fontSize = 11.sp, lineHeight = 15.sp)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             Card(
                 shape = RoundedCornerShape(16.dp),
@@ -98,7 +120,7 @@ fun NearbyRepairShopsScreen(navController: NavController) {
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Opens live Google Maps searching for nearby motorcycle mechanic garages, puncture repair shops, and authorised service centres.",
+                        text = "Searches for motorcycle mechanics, puncture repair shops, and service centres near your coordinates.",
                         color = textGrey,
                         fontSize = 13.sp,
                         lineHeight = 18.sp
@@ -107,7 +129,7 @@ fun NearbyRepairShopsScreen(navController: NavController) {
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Button(
-                        onClick = { launchMapsSearch("motorcycle repair shop") },
+                        onClick = { launchGeoSearch("motorcycle repair shop") },
                         colors = ButtonDefaults.buttonColors(containerColor = primaryCyan),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
@@ -123,12 +145,12 @@ fun NearbyRepairShopsScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Quick Search Shortucts
+            // Quick Search Shortcuts
             Text("SPECIALIST SEARCHES", color = textGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedButton(
-                onClick = { launchMapsSearch("bike tyre puncture repair") },
+                onClick = { launchGeoSearch("bike tyre puncture repair") },
                 modifier = Modifier.fillMaxWidth().height(48.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = textWhite),
                 shape = RoundedCornerShape(12.dp)
@@ -137,7 +159,7 @@ fun NearbyRepairShopsScreen(navController: NavController) {
             }
             Spacer(modifier = Modifier.height(10.dp))
             OutlinedButton(
-                onClick = { launchMapsSearch("authorised motorcycle service centre") },
+                onClick = { launchGeoSearch("authorised motorcycle service centre") },
                 modifier = Modifier.fillMaxWidth().height(48.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = textWhite),
                 shape = RoundedCornerShape(12.dp)

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocalGasStation
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material3.*
@@ -15,12 +16,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.motobuddy.mapping.UnconfiguredMappingEngine
 import com.example.motobuddy.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,15 +36,10 @@ fun NearbyPetrolPumpsScreen(navController: NavController) {
     val textWhite = MaterialTheme.colorScheme.onBackground
     val textGrey = MaterialTheme.colorScheme.onSurfaceVariant
 
-    fun launchMapsSearch(query: String) {
-        val gmmIntentUri = Uri.parse("geo:0,0?q=$query")
-        val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
-        mapIntent.setPackage("com.google.android.apps.maps")
-        if (mapIntent.resolveActivity(context.packageManager) != null) {
-            context.startActivity(mapIntent)
-        } else {
-            context.startActivity(Intent(Intent.ACTION_VIEW, gmmIntentUri))
-        }
+    fun launchGeoSearch(query: String) {
+        val geoUri = Uri.parse("geo:0,0?q=${Uri.encode(query)}")
+        val mapIntent = Intent(Intent.ACTION_VIEW, geoUri)
+        context.startActivity(Intent.createChooser(mapIntent, "Search Places with:"))
     }
 
     Scaffold(
@@ -68,6 +64,26 @@ fun NearbyPetrolPumpsScreen(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(8.dp))
+
+            // Open Source Mapping Notice
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(cardColor)
+                    .border(1.dp, primaryCyan.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                    .padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(imageVector = Icons.Default.Info, contentDescription = "Info", tint = primaryCyan, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text("Place Search: Open-Source Layer", color = textWhite, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(UnconfiguredMappingEngine.getStatusMessage(), color = textGrey, fontSize = 11.sp, lineHeight = 15.sp)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             Card(
                 shape = RoundedCornerShape(16.dp),
@@ -104,7 +120,7 @@ fun NearbyPetrolPumpsScreen(navController: NavController) {
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Opens live Google Maps searching for 24/7 petrol pumps, HP, IndianOil, Shell, and BPCL stations near you.",
+                        text = "Launches system location services to find petrol pumps near your coordinates via installed navigation apps.",
                         color = textGrey,
                         fontSize = 13.sp,
                         lineHeight = 18.sp
@@ -113,7 +129,7 @@ fun NearbyPetrolPumpsScreen(navController: NavController) {
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Button(
-                        onClick = { launchMapsSearch("petrol pump") },
+                        onClick = { launchGeoSearch("petrol pump") },
                         colors = ButtonDefaults.buttonColors(containerColor = primaryCyan),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
@@ -122,7 +138,7 @@ fun NearbyPetrolPumpsScreen(navController: NavController) {
                     ) {
                         Icon(imageVector = Icons.Default.Map, contentDescription = "Map", tint = MidnightNavy)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = "Open Live Maps Search", color = MidnightNavy, fontWeight = FontWeight.Bold)
+                        Text(text = "Search Nearby Fuel Stations", color = MidnightNavy, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -134,7 +150,7 @@ fun NearbyPetrolPumpsScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedButton(
-                onClick = { launchMapsSearch("Shell petrol pump") },
+                onClick = { launchGeoSearch("Shell petrol pump") },
                 modifier = Modifier.fillMaxWidth().height(48.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = textWhite),
                 shape = RoundedCornerShape(12.dp)
@@ -143,12 +159,12 @@ fun NearbyPetrolPumpsScreen(navController: NavController) {
             }
             Spacer(modifier = Modifier.height(10.dp))
             OutlinedButton(
-                onClick = { launchMapsSearch("IndianOil petrol pump 24 hours") },
+                onClick = { launchGeoSearch("petrol pump 24 hours") },
                 modifier = Modifier.fillMaxWidth().height(48.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = textWhite),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Search 24x7 IndianOil / HP / BPCL")
+                Text("Search 24x7 Fuel Stations")
             }
         }
     }

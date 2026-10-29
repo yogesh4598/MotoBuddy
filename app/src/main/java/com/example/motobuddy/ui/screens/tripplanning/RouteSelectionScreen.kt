@@ -2,6 +2,7 @@ package com.example.motobuddy.ui.screens.tripplanning
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -11,12 +12,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -25,7 +28,9 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.motobuddy.data.model.Trip
 import com.example.motobuddy.data.repository.MotoRepository
+import com.example.motobuddy.mapping.UnconfiguredMappingEngine
 import com.example.motobuddy.ui.theme.*
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,18 +51,13 @@ fun RouteSelectionScreen(navController: NavController) {
     var tripSavedSuccess by remember { mutableStateOf(false) }
 
     val distanceKm = remember(distanceInput) { distanceInput.toDoubleOrNull() ?: 120.0 }
-    val estHours = remember(distanceKm) { String.format("%.1f", distanceKm / 40.0).toDoubleOrNull() ?: 3.0 }
+    val estHours = remember(distanceKm) { String.format(Locale.US, "%.1f", distanceKm / 40.0).toDoubleOrNull() ?: 3.0 }
     val fuelCostEst = remember(distanceKm) { (distanceKm / 35.0) * 104.5 }
 
-    fun launchNavigation(destination: String) {
-        val gmmIntentUri = Uri.parse("google.navigation:q=$destination")
-        val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
-        mapIntent.setPackage("com.google.android.apps.maps")
-        if (mapIntent.resolveActivity(context.packageManager) != null) {
-            context.startActivity(mapIntent)
-        } else {
-            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=$destination")))
-        }
+    fun launchExternalNavigation(destination: String) {
+        val geoUri = Uri.parse("geo:0,0?q=${Uri.encode(destination)}")
+        val mapIntent = Intent(Intent.ACTION_VIEW, geoUri)
+        context.startActivity(Intent.createChooser(mapIntent, "Open Navigation with:"))
     }
 
     Scaffold(
@@ -83,6 +83,26 @@ fun RouteSelectionScreen(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(8.dp))
+
+            // Open Source Mapping Notice
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(cardColor)
+                    .border(1.dp, primaryCyan.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                    .padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(imageVector = Icons.Default.Info, contentDescription = "Info", tint = primaryCyan, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text("Map Engine: Open-Source Architecture", color = textWhite, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(UnconfiguredMappingEngine.getStatusMessage(), color = textGrey, fontSize = 11.sp, lineHeight = 15.sp)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedTextField(
                 value = startLoc,
@@ -194,7 +214,7 @@ fun RouteSelectionScreen(navController: NavController) {
 
             // Navigation Handoff Button
             Button(
-                onClick = { launchNavigation(destLoc) },
+                onClick = { launchExternalNavigation(destLoc) },
                 colors = ButtonDefaults.buttonColors(containerColor = primaryCyan),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
@@ -203,8 +223,10 @@ fun RouteSelectionScreen(navController: NavController) {
             ) {
                 Icon(imageVector = Icons.Default.Navigation, contentDescription = "Start", tint = MidnightNavy)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Start Live Navigation in Maps", color = MidnightNavy, fontWeight = FontWeight.Bold)
+                Text("Launch External Navigation", color = MidnightNavy, fontWeight = FontWeight.Bold)
             }
+
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }

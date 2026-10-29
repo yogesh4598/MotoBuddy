@@ -2,7 +2,6 @@ package com.example.motobuddy.ui.screens.tripplanning
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,7 +15,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -40,9 +38,10 @@ fun TripHistoryScreen(navController: NavController) {
     val textWhite = MaterialTheme.colorScheme.onBackground
     val textGrey = MaterialTheme.colorScheme.onSurfaceVariant
 
-    fun launchNavigation(destination: String) {
-        val mapIntent = Intent(Intent.ACTION_VIEW, Uri.parse("google.navigation:q=$destination"))
-        context.startActivity(mapIntent)
+    fun launchExternalNavigation(destination: String) {
+        val geoUri = Uri.parse("geo:0,0?q=${Uri.encode(destination)}")
+        val mapIntent = Intent(Intent.ACTION_VIEW, geoUri)
+        context.startActivity(Intent.createChooser(mapIntent, "Open Navigation with:"))
     }
 
     Scaffold(
@@ -125,14 +124,14 @@ fun TripHistoryScreen(navController: NavController) {
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Button(
-                            onClick = { launchNavigation(trip.destination) },
+                            onClick = { launchExternalNavigation(trip.destination) },
                             colors = ButtonDefaults.buttonColors(containerColor = primaryCyan),
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.fillMaxWidth().height(44.dp)
                         ) {
                             Icon(imageVector = Icons.Default.Navigation, contentDescription = "Navigate", tint = MidnightNavy, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Navigate on Google Maps", color = MidnightNavy, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text("Launch External Navigation", color = MidnightNavy, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         }
                     }
                 }

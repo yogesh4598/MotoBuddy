@@ -278,9 +278,8 @@ fun DashboardScreen(navController: NavController) {
                 QuickAccessItem(Icons.Default.WbSunny, "Weather", "Road status", accentColor = primaryCyan, modifier = Modifier.weight(1f)) {
                     navController.navigate(Screen.WeatherRoadConditions.route)
                 }
-                QuickAccessItem(Icons.Default.LocationOn, "Petrol Pumps", "Maps intent", accentColor = secondaryOrange, modifier = Modifier.weight(1f)) {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=petrol+pump"))
-                    context.startActivity(intent)
+                QuickAccessItem(Icons.Default.LocationOn, "Petrol Pumps", "Fuel search", accentColor = secondaryOrange, modifier = Modifier.weight(1f)) {
+                    navController.navigate(Screen.NearbyPetrolPumps.route)
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
