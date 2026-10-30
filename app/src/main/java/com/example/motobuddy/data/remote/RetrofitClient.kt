@@ -11,9 +11,12 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
     private var apiService: MotoBuddyApiService? = null
+    private var currentBaseUrl: String? = null
 
     fun getApiService(context: Context): MotoBuddyApiService {
-        if (apiService == null) {
+        val activeUrl = ApiConstants.BASE_URL
+        if (apiService == null || currentBaseUrl != activeUrl) {
+            currentBaseUrl = activeUrl
             val authManager = AuthManager(context)
             val logging = HttpLoggingInterceptor().apply {
                 level = HttpLoggingInterceptor.Level.BODY
@@ -27,7 +30,7 @@ object RetrofitClient {
                 .build()
 
             val retrofit = Retrofit.Builder()
-                .baseUrl(ApiConstants.BASE_URL)
+                .baseUrl(activeUrl)
                 .client(okHttpClient)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()
