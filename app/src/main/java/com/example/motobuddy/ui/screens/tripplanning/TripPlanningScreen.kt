@@ -9,8 +9,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsBike
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.DirectionsBike
 import androidx.compose.material.icons.filled.Landscape
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Restaurant
@@ -20,7 +20,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -30,15 +29,17 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.motobuddy.R
 import com.example.motobuddy.navigation.Screen
+import com.example.motobuddy.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TripPlanningScreen(navController: NavController) {
-    val backgroundColor = Color(0xFF09090B)
-    val cardColor = Color(0xFF18181B)
-    val textWhite = Color(0xFFFAFAFA)
-    val textGrey = Color(0xFFA1A1AA)
-    val primaryOrange = Color(0xFFFF4500)
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val cardColor = MaterialTheme.colorScheme.surface
+    val primaryCyan = MaterialTheme.colorScheme.primary
+    val secondaryOrange = MaterialTheme.colorScheme.secondary
+    val textWhite = MaterialTheme.colorScheme.onBackground
+    val textGrey = MaterialTheme.colorScheme.onSurfaceVariant
 
     var searchQuery by remember { mutableStateOf("") }
 
@@ -80,10 +81,10 @@ fun TripPlanningScreen(navController: NavController) {
                     onValueChange = { searchQuery = it },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("Search places, routes, cafes...", color = textGrey) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", tint = textGrey) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", tint = primaryCyan) },
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = primaryOrange,
-                        unfocusedBorderColor = cardColor,
+                        focusedBorderColor = primaryCyan,
+                        unfocusedBorderColor = DividerBorderColor,
                         focusedTextColor = textWhite,
                         unfocusedTextColor = textWhite,
                         focusedContainerColor = cardColor,
@@ -111,7 +112,7 @@ fun TripPlanningScreen(navController: NavController) {
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 item { CategoryChip(Icons.Default.Landscape, "Scenic", isSelected = true) }
-                item { CategoryChip(Icons.Default.DirectionsBike, "Twisties", isSelected = false) }
+                item { CategoryChip(Icons.AutoMirrored.Filled.DirectionsBike, "Twisties", isSelected = false) }
                 item { CategoryChip(Icons.Default.Restaurant, "Cafes", isSelected = false) }
                 item { CategoryChip(Icons.Default.LocationOn, "Off-road", isSelected = false) }
             }
@@ -129,7 +130,7 @@ fun TripPlanningScreen(navController: NavController) {
                 Text(text = "Popular Routes", color = textWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 Text(
                     text = "See all", 
-                    color = primaryOrange, 
+                    color = primaryCyan, 
                     fontSize = 12.sp, 
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.clickable { navController.navigate(Screen.ScenicRoutes.route) }
@@ -141,7 +142,7 @@ fun TripPlanningScreen(navController: NavController) {
             RouteCard(
                 title = "Mahabaleshwar Twisties",
                 subtitle = "Pune · 120 km · Smooth Tarmac",
-                imageRes = R.drawable.moto_landscape, // using dummy landscape from previous steps
+                imageRes = R.drawable.moto_landscape,
                 onClick = { navController.navigate(Screen.RouteDetails.route) }
             )
 
@@ -166,13 +167,13 @@ fun TripPlanningScreen(navController: NavController) {
             ) {
                 Button(
                     onClick = { navController.navigate(Screen.RouteSelection.route) },
-                    colors = ButtonDefaults.buttonColors(containerColor = primaryOrange),
+                    colors = ButtonDefaults.buttonColors(containerColor = primaryCyan),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
                         .weight(1f)
                         .height(50.dp)
                 ) {
-                    Text(text = "Plan New Trip", color = Color.Black, fontWeight = FontWeight.Bold)
+                    Text(text = "Plan New Trip", color = MidnightNavy, fontWeight = FontWeight.Bold)
                 }
 
                 Button(
@@ -194,8 +195,8 @@ fun TripPlanningScreen(navController: NavController) {
 
 @Composable
 fun CategoryChip(icon: ImageVector, label: String, isSelected: Boolean) {
-    val backgroundColor = if (isSelected) Color(0xFFFF4500) else Color(0xFF18181B)
-    val contentColor = if (isSelected) Color.White else Color.White
+    val backgroundColor = if (isSelected) ElectricCyan else CardBackground
+    val contentColor = if (isSelected) MidnightNavy else TextPrimary
 
     Row(
         modifier = Modifier
@@ -214,7 +215,7 @@ fun CategoryChip(icon: ImageVector, label: String, isSelected: Boolean) {
 fun RouteCard(title: String, subtitle: String, imageRes: Int, onClick: () -> Unit) {
     Card(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF18181B)),
+        colors = CardDefaults.cardColors(containerColor = CardBackground),
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
@@ -237,11 +238,11 @@ fun RouteCard(title: String, subtitle: String, imageRes: Int, onClick: () -> Uni
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text(text = title, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text(text = title, color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(text = subtitle, color = Color(0xFFA1A1AA), fontSize = 12.sp)
+                    Text(text = subtitle, color = TextSecondary, fontSize = 12.sp)
                 }
-                Icon(imageVector = Icons.Default.ChevronRight, contentDescription = "Go", tint = Color(0xFFA1A1AA))
+                Icon(imageVector = Icons.Default.ChevronRight, contentDescription = "Go", tint = TextSecondary)
             }
         }
     }

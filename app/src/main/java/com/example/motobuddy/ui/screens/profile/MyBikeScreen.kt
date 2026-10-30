@@ -110,7 +110,7 @@ fun MyBikeScreen(navController: NavController) {
                         Text(text = "Model Year: ${motorcycle.year} · Owner: ${motorcycle.ownerName}", color = textGrey, fontSize = 13.sp)
 
                         Spacer(modifier = Modifier.height(16.dp))
-                        HorizontalDivider(color = Color(0xFF27272A))
+                        HorizontalDivider(color = DividerBorderColor)
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Row(

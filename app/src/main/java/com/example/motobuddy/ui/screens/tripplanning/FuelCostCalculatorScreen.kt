@@ -96,7 +96,7 @@ fun FuelCostCalculatorScreen(navController: NavController) {
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = primaryCyan,
-                    unfocusedBorderColor = Color(0xFF27272A),
+                    unfocusedBorderColor = DividerBorderColor,
                     focusedTextColor = textWhite,
                     unfocusedTextColor = textWhite,
                     focusedContainerColor = cardColor,
@@ -115,7 +115,7 @@ fun FuelCostCalculatorScreen(navController: NavController) {
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = primaryCyan,
-                    unfocusedBorderColor = Color(0xFF27272A),
+                    unfocusedBorderColor = DividerBorderColor,
                     focusedTextColor = textWhite,
                     unfocusedTextColor = textWhite,
                     focusedContainerColor = cardColor,
@@ -134,7 +134,7 @@ fun FuelCostCalculatorScreen(navController: NavController) {
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = primaryCyan,
-                    unfocusedBorderColor = Color(0xFF27272A),
+                    unfocusedBorderColor = DividerBorderColor,
                     focusedTextColor = textWhite,
                     unfocusedTextColor = textWhite,
                     focusedContainerColor = cardColor,
@@ -204,7 +204,7 @@ fun FuelCostCalculatorScreen(navController: NavController) {
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
-                    HorizontalDivider(color = Color(0xFF27272A))
+                    HorizontalDivider(color = DividerBorderColor)
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text("Total Fuel Expense", color = textGrey, fontSize = 12.sp)

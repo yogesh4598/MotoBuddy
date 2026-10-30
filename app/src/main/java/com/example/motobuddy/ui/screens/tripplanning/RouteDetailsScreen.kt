@@ -5,17 +5,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.font.FontWeight
 import androidx.navigation.NavController
+import com.example.motobuddy.ui.theme.*
 
 @Composable
 fun RouteDetailsScreen(navController: NavController) {
-    val backgroundColor = Color(0xFF161618)
-    val textWhite = Color(0xFFFFFFFF)
-    val primaryOrange = Color(0xFFFF6600)
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val textWhite = MaterialTheme.colorScheme.onBackground
+    val primaryCyan = MaterialTheme.colorScheme.primary
 
     Surface(modifier = Modifier.fillMaxSize(), color = backgroundColor) {
         Column(
@@ -24,7 +24,7 @@ fun RouteDetailsScreen(navController: NavController) {
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "RouteDetailsScreen",
+                text = "Route Details",
                 color = textWhite,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold
@@ -32,11 +32,10 @@ fun RouteDetailsScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(16.dp))
             Button(
                 onClick = { navController.popBackStack() },
-                colors = ButtonDefaults.buttonColors(containerColor = primaryOrange)
+                colors = ButtonDefaults.buttonColors(containerColor = primaryCyan)
             ) {
-                Text("Go Back", color = Color.White)
+                Text("Go Back", color = MidnightNavy, fontWeight = FontWeight.Bold)
             }
         }
     }
 }
-

@@ -9,16 +9,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.AltRoute
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Explore
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -34,16 +28,15 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.motobuddy.R
-import com.example.motobuddy.ui.theme.MotoBuddyTheme
+import com.example.motobuddy.ui.theme.*
 
 @Composable
 fun CommunityScreen(navController: NavController) {
-    val backgroundColor = Color(0xFF09090B)
-    val cardColor = Color(0xFF18181B)
-    val textWhite = Color(0xFFFAFAFA)
-    val textGrey = Color(0xFFA1A1AA)
-    val primaryOrange = Color(0xFFFF4500)
-    val darkButtonColor = Color(0xFF27272A)
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val cardColor = MaterialTheme.colorScheme.surface
+    val primaryCyan = MaterialTheme.colorScheme.primary
+    val textWhite = MaterialTheme.colorScheme.onBackground
+    val textGrey = MaterialTheme.colorScheme.onSurfaceVariant
 
     Scaffold(
         containerColor = backgroundColor,
@@ -57,7 +50,7 @@ fun CommunityScreen(navController: NavController) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "TRIPS",
+                    text = "TRIPS & COMMUNITY",
                     color = textWhite,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
@@ -99,18 +92,18 @@ fun CommunityScreen(navController: NavController) {
             ) {
                 Button(
                     onClick = { /* TODO */ },
-                    colors = ButtonDefaults.buttonColors(containerColor = primaryOrange),
+                    colors = ButtonDefaults.buttonColors(containerColor = primaryCyan),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
                         .weight(1f)
                         .height(50.dp)
                 ) {
-                    Text(text = "+ Create Ride", color = Color.Black, fontWeight = FontWeight.Bold)
+                    Text(text = "+ Create Ride", color = MidnightNavy, fontWeight = FontWeight.Bold)
                 }
 
                 Button(
                     onClick = { /* TODO */ },
-                    colors = ButtonDefaults.buttonColors(containerColor = darkButtonColor),
+                    colors = ButtonDefaults.buttonColors(containerColor = cardColor),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
                         .weight(1f)
@@ -128,8 +121,8 @@ fun CommunityScreen(navController: NavController) {
             ) {
                 OutlinedButton(
                     onClick = { /* TODO */ },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = primaryOrange),
-                    border = BorderStroke(1.dp, primaryOrange),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = primaryCyan),
+                    border = BorderStroke(1.dp, primaryCyan),
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.height(36.dp),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp)
@@ -140,7 +133,7 @@ fun CommunityScreen(navController: NavController) {
                 Button(
                     onClick = { /* TODO */ },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = darkButtonColor,
+                        containerColor = cardColor,
                         contentColor = textGrey
                     ),
                     shape = RoundedCornerShape(8.dp),
@@ -162,7 +155,6 @@ fun CommunityScreen(navController: NavController) {
                 Column(
                     modifier = Modifier.padding(16.dp)
                 ) {
-                    // Actual Image replace placeholder
                     Image(
                         painter = painterResource(id = R.drawable.moto_landscape),
                         contentDescription = "Ride Image",
@@ -282,13 +274,13 @@ fun CommunityScreen(navController: NavController) {
                         Icon(
                             imageVector = Icons.Default.Share,
                             contentDescription = "Share",
-                            tint = textWhite,
+                            tint = primaryCyan,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Share Invitation",
-                            color = textWhite,
+                            color = primaryCyan,
                             fontWeight = FontWeight.SemiBold
                         )
                     }
@@ -353,7 +345,7 @@ fun CommunityScreen(navController: NavController) {
                 Icon(
                     imageVector = Icons.Default.Info,
                     contentDescription = "Info",
-                    tint = textGrey,
+                    tint = primaryCyan,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
@@ -366,7 +358,7 @@ fun CommunityScreen(navController: NavController) {
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Agree on stops, keep safe gaps and never feel pressured to match another rider's pace. No invitations have been sent.",
+                        text = "Agree on stops, keep safe gaps and never feel pressured to match another rider's pace.",
                         color = textGrey,
                         fontSize = 12.sp,
                         lineHeight = 16.sp
@@ -386,4 +378,3 @@ fun CommunityScreenPreview() {
         CommunityScreen(navController = rememberNavController())
     }
 }
-

@@ -57,7 +57,7 @@ fun MechanicAssistantScreen(navController: NavController) {
         mutableStateListOf(
             ChatMessage(
                 sender = "AI",
-                text = "Hello! I am your MotoBuddy Offline AI Mechanic. I can help troubleshoot starting issues, battery concerns, brake noise, or chain maintenance for your ${motorcycle.make} ${motorcycle.model}.\n\nHow is your bike behaving?"
+                text = "Hello! I am your MotoBuddy Diagnostic Assistant. I can help troubleshoot starting issues, battery concerns, brake noise, or chain maintenance for your ${motorcycle.make} ${motorcycle.model}.\n\nHow is your bike behaving?"
             )
         )
     }
@@ -70,53 +70,62 @@ fun MechanicAssistantScreen(navController: NavController) {
 
         coroutineScope.launch {
             listState.animateScrollToItem(messages.size - 1)
-        }
 
-        // Generate Offline AI Assistant Response
-        val lower = trimmed.lowercase()
-        val aiResponse: ChatMessage = when {
-            lower.contains("brake") || lower.contains("stop") -> {
-                ChatMessage(
-                    sender = "AI",
-                    text = "⚠️ SAFETY WARNING: Brake issues are critical!\n\n1. If your brake lever feels spongy, check the brake fluid reservoir level.\n2. Squealing noises usually indicate worn brake pads.\n3. Do NOT ride if braking power is reduced. Inspect pads immediately or visit a service shop.",
-                    isWarning = true
-                )
+            // Attempt PHP REST API connection
+            val result = repository.sendMechanicMessageRemote(trimmed, motorcycle.model)
+            if (result.isSuccess) {
+                val data = result.getOrNull()
+                if (data != null) {
+                    messages.add(ChatMessage(sender = "AI", text = data.reply, isWarning = data.isWarning))
+                    listState.animateScrollToItem(messages.size - 1)
+                    return@launch
+                }
             }
-            lower.contains("start") || lower.contains("click") || lower.contains("battery") || lower.contains("dead") -> {
-                ChatMessage(
-                    sender = "AI",
-                    text = "Starting Issue Diagnostics:\n\n1. Rapid clicking sound when pressing ignition usually means low battery voltage.\n2. Ensure the kill switch is set to RUN and side stand is UP in gear.\n3. Check terminal connections for corrosion.\n4. If headlights are dim, jump-start or charge the 12V battery."
-                )
-            }
-            lower.contains("heat") || lower.contains("hot") || lower.contains("coolant") || lower.contains("smoke") -> {
-                ChatMessage(
-                    sender = "AI",
-                    text = "⚠️ OVERHEATING ALERT:\n\n1. Immediately pull over safely and switch off the engine!\n2. Check if radiator fan is running (if liquid cooled).\n3. Allow engine to cool 20+ minutes before opening coolant/oil caps.\n4. Check for oil or coolant leaks underneath.",
-                    isWarning = true
-                )
-            }
-            lower.contains("chain") || lower.contains("slack") || lower.contains("noise") -> {
-                ChatMessage(
-                    sender = "AI",
-                    text = "Drive Chain Advice:\n\n1. Ideal chain slack is 25-35 mm.\n2. Clean with O-ring safe chain cleaner every 500 km and lube with EP lube.\n3. Rattling or clicking noises while rolling indicate uneven chain stretch or worn sprockets."
-                )
-            }
-            lower.contains("oil") || lower.contains("filter") -> {
-                ChatMessage(
-                    sender = "AI",
-                    text = "Engine Oil Guidance:\n\nFor your ${motorcycle.model}, check oil level using the sight glass/dipstick with the bike held upright on level ground. Top up with manufacturer-recommended grade (e.g. 15W-50 Semi/Full Synthetic) if below the MIN line."
-                )
-            }
-            else -> {
-                ChatMessage(
-                    sender = "AI",
-                    text = "I received your note about '${trimmed}'.\n\nTo help narrow this down: Is the issue related to starting, electrical/battery, unusual engine noise, or braking? Feel free to tap one of the suggested diagnostic chips below!"
-                )
-            }
-        }
 
-        messages.add(aiResponse)
-        coroutineScope.launch {
+            // Local fallback if offline
+            val lower = trimmed.lowercase()
+            val aiResponse: ChatMessage = when {
+                lower.contains("brake") || lower.contains("stop") -> {
+                    ChatMessage(
+                        sender = "AI",
+                        text = "⚠️ SAFETY WARNING: Brake issues are critical!\n\n1. If your brake lever feels spongy, check the brake fluid reservoir level.\n2. Squealing noises usually indicate worn brake pads.\n3. Do NOT ride if braking power is reduced. Inspect pads immediately or visit a service shop.",
+                        isWarning = true
+                    )
+                }
+                lower.contains("start") || lower.contains("click") || lower.contains("battery") || lower.contains("dead") -> {
+                    ChatMessage(
+                        sender = "AI",
+                        text = "Starting Issue Diagnostics:\n\n1. Rapid clicking sound when pressing ignition usually means low battery voltage.\n2. Ensure the kill switch is set to RUN and side stand is UP in gear.\n3. Check terminal connections for corrosion.\n4. If headlights are dim, jump-start or charge the 12V battery."
+                    )
+                }
+                lower.contains("heat") || lower.contains("hot") || lower.contains("coolant") || lower.contains("smoke") -> {
+                    ChatMessage(
+                        sender = "AI",
+                        text = "⚠️ OVERHEATING ALERT:\n\n1. Immediately pull over safely and switch off the engine!\n2. Check if radiator fan is running (if liquid cooled).\n3. Allow engine to cool 20+ minutes before opening coolant/oil caps.\n4. Check for oil or coolant leaks underneath.",
+                        isWarning = true
+                    )
+                }
+                lower.contains("chain") || lower.contains("slack") || lower.contains("noise") -> {
+                    ChatMessage(
+                        sender = "AI",
+                        text = "Drive Chain Advice:\n\n1. Ideal chain slack is 25-35 mm.\n2. Clean with O-ring safe chain cleaner every 500 km and lube with EP lube.\n3. Rattling or clicking noises while rolling indicate uneven chain stretch or worn sprockets."
+                    )
+                }
+                lower.contains("oil") || lower.contains("filter") -> {
+                    ChatMessage(
+                        sender = "AI",
+                        text = "Engine Oil Guidance:\n\nFor your ${motorcycle.model}, check oil level using the sight glass/dipstick with the bike held upright on level ground. Top up with manufacturer-recommended grade (e.g. 15W-50 Semi/Full Synthetic) if below the MIN line."
+                    )
+                }
+                else -> {
+                    ChatMessage(
+                        sender = "AI",
+                        text = "I received your note about '${trimmed}'.\n\nTo help narrow this down: Is the issue related to starting, electrical/battery, unusual engine noise, or braking? Feel free to tap one of the suggested diagnostic chips below!"
+                    )
+                }
+            }
+
+            messages.add(aiResponse)
             listState.animateScrollToItem(messages.size - 1)
         }
     }
@@ -128,7 +137,7 @@ fun MechanicAssistantScreen(navController: NavController) {
                 title = {
                     Column {
                         Text("AI Mechanic Assistant", color = textWhite, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                        Text("Offline Diagnostic Engine · ${motorcycle.model}", color = primaryCyan, fontSize = 11.sp)
+                        Text("Connected to MotoBuddy Backend · ${motorcycle.model}", color = primaryCyan, fontSize = 11.sp)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = backgroundColor),
@@ -261,7 +270,7 @@ fun MechanicAssistantScreen(navController: NavController) {
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomEnd = 16.dp, bottomStart = 4.dp))
                                     .background(if (msg.isWarning) Color(0xFF2D1616) else cardColor)
-                                    .border(1.dp, if (msg.isWarning) ErrorRed else Color(0xFF27272A), RoundedCornerShape(16.dp))
+                                    .border(1.dp, if (msg.isWarning) ErrorRed else DividerBorderColor, RoundedCornerShape(16.dp))
                                     .padding(14.dp)
                             ) {
                                 Text(

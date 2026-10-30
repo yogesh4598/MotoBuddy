@@ -370,7 +370,7 @@ fun QuickAccessItem(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
             .background(CardBackground)
-            .border(1.dp, Color(0xFF27272A), RoundedCornerShape(16.dp))
+            .border(1.dp, DividerBorderColor, RoundedCornerShape(16.dp))
             .clickable { onClick() }
             .padding(14.dp),
         contentAlignment = Alignment.CenterStart

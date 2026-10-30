@@ -83,7 +83,7 @@ fun TripHistoryScreen(navController: NavController) {
                     colors = CardDefaults.cardColors(containerColor = cardColor),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(1.dp, Color(0xFF27272A), RoundedCornerShape(16.dp))
+                        .border(1.dp, DividerBorderColor, RoundedCornerShape(16.dp))
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(
