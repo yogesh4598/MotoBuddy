@@ -1,6 +1,7 @@
 package com.example.motobuddy.ui.viewmodel
 
 import android.app.Application
+import android.util.Patterns
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.motobuddy.data.remote.dto.UserProfileDto
@@ -23,13 +24,22 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     val logoutState: StateFlow<UiState<Boolean>> = _logoutState
 
     fun login(email: String, pass: String) {
-        if (email.isBlank() || pass.isBlank()) {
+        val trimmedEmail = email.trim()
+        val trimmedPass = pass.trim()
+
+        if (trimmedEmail.isBlank() || trimmedPass.isBlank()) {
             _loginState.value = UiState.Error("Email and password cannot be empty.")
             return
         }
+
+        if (!Patterns.EMAIL_ADDRESS.matcher(trimmedEmail).matches()) {
+            _loginState.value = UiState.Error("Please enter a valid email address (e.g. rider@motobuddy.com).")
+            return
+        }
+
         viewModelScope.launch {
             _loginState.value = UiState.Loading
-            val result = repository.login(email, pass)
+            val result = repository.login(trimmedEmail, trimmedPass)
             result.onSuccess {
                 _loginState.value = UiState.Success(it)
             }.onFailure {
@@ -39,13 +49,23 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun register(name: String, email: String, pass: String) {
-        if (name.isBlank() || email.isBlank() || pass.isBlank()) {
+        val trimmedName = name.trim()
+        val trimmedEmail = email.trim()
+        val trimmedPass = pass.trim()
+
+        if (trimmedName.isBlank() || trimmedEmail.isBlank() || trimmedPass.isBlank()) {
             _registerState.value = UiState.Error("All registration fields are required.")
             return
         }
+
+        if (!Patterns.EMAIL_ADDRESS.matcher(trimmedEmail).matches()) {
+            _registerState.value = UiState.Error("Please enter a valid email address (e.g. rider@motobuddy.com).")
+            return
+        }
+
         viewModelScope.launch {
             _registerState.value = UiState.Loading
-            val result = repository.register(name, email, pass)
+            val result = repository.register(trimmedName, trimmedEmail, trimmedPass)
             result.onSuccess {
                 _registerState.value = UiState.Success(it)
             }.onFailure {
