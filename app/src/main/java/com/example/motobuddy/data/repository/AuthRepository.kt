@@ -9,47 +9,68 @@ import com.example.motobuddy.data.remote.dto.RegisterRequest
 import com.example.motobuddy.data.remote.dto.UserProfileDto
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import retrofit2.Response
 
 class AuthRepository(private val context: Context) {
     private val apiService = RetrofitClient.getApiService(context)
     val authManager = AuthManager(context)
 
+    private fun parseErrorMessage(response: Response<*>): String {
+        return try {
+            val errorJson = response.errorBody()?.string()
+            if (!errorJson.isNullOrBlank()) {
+                val jsonObject = JSONObject(errorJson)
+                jsonObject.optString("message", "Request failed.")
+            } else {
+                response.message().ifBlank { "Request failed." }
+            }
+        } catch (e: Exception) {
+            "Request failed."
+        }
+    }
+
     suspend fun login(email: String, pass: String): Result<UserProfileDto?> = withContext(Dispatchers.IO) {
         try {
             val response = apiService.login(LoginRequest(email.trim(), pass))
-            if (response.isSuccessful && response.body()?.success == true) {
-                val data = response.body()?.data
-                data?.token?.let { authManager.saveAuthToken(it) }
-                authManager.saveUserEmail(email.trim())
-                Result.success(data?.user)
+            if (response.isSuccessful) {
+                val body = response.body()
+                if (body?.success == true) {
+                    val data = body.data
+                    data?.token?.let { authManager.saveAuthToken(it) }
+                    authManager.saveUserEmail(email.trim())
+                    Result.success(data?.user)
+                } else {
+                    Result.failure(Exception(body?.message ?: "Invalid email or password."))
+                }
             } else {
-                val errorMsg = response.body()?.message ?: "Invalid email or password."
+                val errorMsg = parseErrorMessage(response)
                 Result.failure(Exception(errorMsg))
             }
         } catch (e: Exception) {
-            // Local fallback for offline/development mode when server is unreachable
-            authManager.saveAuthToken("offline_session_token")
-            authManager.saveUserEmail(email.trim())
-            val nameFromEmail = email.substringBefore("@").replace(".", " ").replaceFirstChar { it.uppercase() }
-            Result.success(UserProfileDto(id = "1", name = if (nameFromEmail.isNotBlank()) nameFromEmail else "Rider", email = email.trim()))
+            Result.failure(Exception("Cannot connect to server at ${ApiConstants.BASE_URL}. Ensure XAMPP is running."))
         }
     }
 
     suspend fun register(name: String, email: String, pass: String): Result<UserProfileDto?> = withContext(Dispatchers.IO) {
         try {
             val response = apiService.register(RegisterRequest(name.trim(), email.trim(), pass))
-            if (response.isSuccessful && response.body()?.success == true) {
-                val data = response.body()?.data
-                data?.token?.let { authManager.saveAuthToken(it) }
-                authManager.saveUserEmail(email.trim())
-                Result.success(data?.user)
+            if (response.isSuccessful) {
+                val body = response.body()
+                if (body?.success == true) {
+                    val data = body.data
+                    data?.token?.let { authManager.saveAuthToken(it) }
+                    authManager.saveUserEmail(email.trim())
+                    Result.success(data?.user)
+                } else {
+                    Result.failure(Exception(body?.message ?: "Registration failed."))
+                }
             } else {
-                Result.failure(Exception(response.body()?.message ?: "Registration failed."))
+                val errorMsg = parseErrorMessage(response)
+                Result.failure(Exception(errorMsg))
             }
         } catch (e: Exception) {
-            authManager.saveAuthToken("offline_session_token")
-            authManager.saveUserEmail(email.trim())
-            Result.success(UserProfileDto(id = "1", name = name.trim(), email = email.trim()))
+            Result.failure(Exception("Cannot connect to server at ${ApiConstants.BASE_URL}. Ensure XAMPP is running."))
         }
     }
 
