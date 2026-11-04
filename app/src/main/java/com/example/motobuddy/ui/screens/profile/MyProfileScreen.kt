@@ -61,8 +61,8 @@ fun MyProfileScreen(
     val authManager = remember { AuthManager(context) }
     val sharedPreferences = remember { context.getSharedPreferences("MotoBuddyPrefs", Context.MODE_PRIVATE) }
     
-    val userEmail = remember { authManager.getUserEmail() ?: "aarav.sharma@demo.com" }
-    val userName = remember { userEmail.substringBefore("@").replace(".", " ").replaceFirstChar { it.uppercase() } }
+    val userEmail = remember { authManager.getUserEmail() ?: "rider@motobuddy.com" }
+    val userName = remember { authManager.getUserName() ?: userEmail.substringBefore("@").replace(".", " ").replaceFirstChar { it.uppercase() } }
 
     var showLogoutDialog by remember { mutableStateOf(false) }
 

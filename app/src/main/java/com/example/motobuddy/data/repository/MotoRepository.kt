@@ -1,6 +1,7 @@
 package com.example.motobuddy.data.repository
 
 import android.content.Context
+import com.example.motobuddy.data.local.AuthManager
 import com.example.motobuddy.data.model.MaintenanceRecord
 import com.example.motobuddy.data.model.Motorcycle
 import com.example.motobuddy.data.model.Trip
@@ -50,11 +51,13 @@ class MotoRepository(private val context: Context) {
     }
 
     fun getMotorcycle(): Motorcycle {
+        val authManager = AuthManager(context)
+        val defaultOwner = authManager.getUserName() ?: authManager.getUserEmail()?.substringBefore("@")?.replace(".", " ")?.replaceFirstChar { it.uppercase() } ?: "Rider"
         val make = prefs.getString("moto_make", "Royal Enfield") ?: "Royal Enfield"
         val model = prefs.getString("moto_model", "Himalayan 411") ?: "Himalayan 411"
         val year = prefs.getInt("moto_year", 2022)
         val odo = prefs.getInt("moto_odo", 14250)
-        val owner = prefs.getString("moto_owner", "Aarav Sharma") ?: "Aarav Sharma"
+        val owner = prefs.getString("moto_owner", defaultOwner) ?: defaultOwner
         return Motorcycle(make, model, year, odo, owner)
     }
 

@@ -39,6 +39,8 @@ class AuthRepository(private val context: Context) {
                     val data = body.data
                     data?.token?.let { authManager.saveAuthToken(it) }
                     authManager.saveUserEmail(email.trim())
+                    val userName = data?.user?.name ?: email.trim().substringBefore("@").replace(".", " ").replaceFirstChar { it.uppercase() }
+                    authManager.saveUserName(userName)
                     Result.success(data?.user)
                 } else {
                     Result.failure(Exception(body?.message ?: "Invalid email or password."))
@@ -61,6 +63,8 @@ class AuthRepository(private val context: Context) {
                     val data = body.data
                     data?.token?.let { authManager.saveAuthToken(it) }
                     authManager.saveUserEmail(email.trim())
+                    val userName = if (!name.isBlank()) name.trim() else (data?.user?.name ?: email.trim().substringBefore("@").replace(".", " "))
+                    authManager.saveUserName(userName)
                     Result.success(data?.user)
                 } else {
                     Result.failure(Exception(body?.message ?: "Registration failed."))
@@ -70,7 +74,7 @@ class AuthRepository(private val context: Context) {
                 Result.failure(Exception(errorMsg))
             }
         } catch (e: Exception) {
-            Result.failure(Exception("Cannot connect to server at ${ApiConstants.BASE_URL}. Ensure XAMPP is required."))
+            Result.failure(Exception("Cannot connect to server at ${ApiConstants.BASE_URL}. Ensure XAMPP is running."))
         }
     }
 
