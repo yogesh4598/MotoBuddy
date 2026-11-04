@@ -19,14 +19,14 @@ class AuthRepository(private val context: Context) {
     private fun parseErrorMessage(response: Response<*>): String {
         return try {
             val errorJson = response.errorBody()?.string()
-            if (!errorJson.isNullOrBlank()) {
+            if (!errorJson.isNullOrBlank() && errorJson.trim().startsWith("{")) {
                 val jsonObject = JSONObject(errorJson)
-                jsonObject.optString("message", "Request failed.")
+                jsonObject.optString("message", "Server error (${response.code()})")
             } else {
-                response.message().ifBlank { "Request failed." }
+                "Server error (${response.code()}): ${response.message()}"
             }
         } catch (e: Exception) {
-            "Request failed."
+            "Server error (${response.code()}): ${response.message()}"
         }
     }
 
@@ -70,7 +70,7 @@ class AuthRepository(private val context: Context) {
                 Result.failure(Exception(errorMsg))
             }
         } catch (e: Exception) {
-            Result.failure(Exception("Cannot connect to server at ${ApiConstants.BASE_URL}. Ensure XAMPP is running."))
+            Result.failure(Exception("Cannot connect to server at ${ApiConstants.BASE_URL}. Ensure XAMPP is required."))
         }
     }
 
