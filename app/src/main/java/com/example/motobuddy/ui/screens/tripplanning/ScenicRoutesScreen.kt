@@ -14,7 +14,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -51,9 +50,9 @@ fun ScenicRoutesScreen(navController: NavController) {
     val textGrey = MaterialTheme.colorScheme.onSurfaceVariant
 
     val scenicRoutes = listOf(
-        ScenicRouteItem("Mahabaleshwar Western Ghats", "Pune", "Mahabaleshwar", 120.0, "Smooth winding mountain roads through dense forest canopy and lake views.", R.drawable.moto_landscape),
-        ScenicRouteItem("Tamhini Ghat Twisties", "Pune", "Tamhini", 75.0, "Popular weekend twisty road with waterfall viewpoints and mountain passes.", R.drawable.moto_landscape),
-        ScenicRouteItem("Lonavala Expressway Old Highway", "Pune", "Lonavala", 65.0, "Scenic highway ride with roadside cafes and lush green valley views.", R.drawable.moto_landscape)
+        ScenicRouteItem("Mahabaleshwar Western Ghats", "Pune", "Mahabaleshwar", 120.0, "Smooth winding mountain roads through dense forest canopy and lake views.", R.drawable.slide_scenic_pass),
+        ScenicRouteItem("Tamhini Ghat Twisties", "Pune", "Tamhini", 75.0, "Popular weekend twisty road with waterfall viewpoints and mountain passes.", R.drawable.slide_scenic_pass),
+        ScenicRouteItem("Lonavala Expressway Old Highway", "Pune", "Lonavala", 65.0, "Scenic highway ride with roadside cafes and lush green valley views.", R.drawable.slide_community_pack)
     )
 
     Scaffold(
