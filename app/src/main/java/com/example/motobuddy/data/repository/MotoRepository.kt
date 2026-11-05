@@ -2,6 +2,7 @@ package com.example.motobuddy.data.repository
 
 import android.content.Context
 import com.example.motobuddy.data.local.AuthManager
+import com.example.motobuddy.data.model.FuelEntry
 import com.example.motobuddy.data.model.MaintenanceRecord
 import com.example.motobuddy.data.model.Motorcycle
 import com.example.motobuddy.data.model.Trip
@@ -311,6 +312,128 @@ class MotoRepository(private val context: Context) {
             Trip(title = "Pune to Mahabaleshwar Weekend Ride", startLocation = "Pune", destination = "Mahabaleshwar", distanceKm = 120.0, estDurationHours = 3.2, fuelCostEst = 420.0, date = "01 Nov 2026"),
             Trip(title = "Lonavala Monsoon Express", startLocation = "Pune", destination = "Lonavala", distanceKm = 65.0, estDurationHours = 1.5, fuelCostEst = 220.0, date = "15 Oct 2026")
         )
+    }
+
+    // Fuel Entries Persistence & Remote Sync
+    suspend fun fetchFuelEntriesRemote(): Result<List<FuelEntry>> = withContext(Dispatchers.IO) {
+        try {
+            val response = apiService.getFuelEntries()
+            if (response.isSuccessful && response.body()?.success == true) {
+                val dtos = response.body()?.data ?: emptyList()
+                val list = dtos.map { dto ->
+                    FuelEntry(
+                        id = dto.id ?: UUID.randomUUID().toString(),
+                        date = dto.date,
+                        odometerKm = dto.odometerKm,
+                        liters = dto.liters,
+                        pricePerLiter = dto.pricePerLiter,
+                        totalCost = if (dto.totalCost > 0) dto.totalCost else (dto.liters * dto.pricePerLiter),
+                        notes = dto.notes ?: ""
+                    )
+                }
+                if (list.isNotEmpty()) {
+                    saveFuelList(list)
+                }
+                Result.success(list)
+            } else {
+                Result.success(getFuelEntries())
+            }
+        } catch (e: Exception) {
+            Result.success(getFuelEntries())
+        }
+    }
+
+    fun getFuelEntries(): List<FuelEntry> {
+        val jsonStr = prefs.getString("fuel_list", null) ?: return getInitialFuelEntries()
+        val list = mutableListOf<FuelEntry>()
+        try {
+            val array = JSONArray(jsonStr)
+            for (i in 0 until array.length()) {
+                val obj = array.getJSONObject(i)
+                list.add(
+                    FuelEntry(
+                        id = obj.getString("id"),
+                        date = obj.getString("date"),
+                        odometerKm = obj.getInt("odometerKm"),
+                        liters = obj.getDouble("liters"),
+                        pricePerLiter = obj.getDouble("pricePerLiter"),
+                        totalCost = obj.getDouble("totalCost"),
+                        notes = obj.optString("notes", "")
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return if (list.isEmpty()) getInitialFuelEntries() else list
+    }
+
+    fun addFuelEntry(entry: FuelEntry) {
+        val list = getFuelEntries().toMutableList()
+        list.add(0, entry)
+        saveFuelList(list)
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                apiService.addFuelEntry(
+                    FuelEntryDto(
+                        date = entry.date,
+                        odometerKm = entry.odometerKm,
+                        liters = entry.liters,
+                        pricePerLiter = entry.pricePerLiter,
+                        totalCost = entry.totalCost,
+                        notes = entry.notes
+                    )
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun deleteFuelEntry(id: String) {
+        val list = getFuelEntries().filter { it.id != id }
+        saveFuelList(list)
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                apiService.deleteFuelEntry(id)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    private fun saveFuelList(list: List<FuelEntry>) {
+        val array = JSONArray()
+        list.forEach { f ->
+            val obj = JSONObject().apply {
+                put("id", f.id)
+                put("date", f.date)
+                put("odometerKm", f.odometerKm)
+                put("liters", f.liters)
+                put("pricePerLiter", f.pricePerLiter)
+                put("totalCost", f.totalCost)
+                put("notes", f.notes)
+            }
+            array.put(obj)
+        }
+        prefs.edit().putString("fuel_list", array.toString()).apply()
+    }
+
+    private fun getInitialFuelEntries(): List<FuelEntry> {
+        return listOf(
+            FuelEntry(date = "01 Nov 2026", odometerKm = 14250, liters = 10.0, pricePerLiter = 104.5, totalCost = 1045.0, notes = "Full tank refill"),
+            FuelEntry(date = "15 Oct 2026", odometerKm = 13900, liters = 11.2, pricePerLiter = 104.0, totalCost = 1164.8, notes = "Highway fuel stop")
+        )
+    }
+
+    fun calculateAverageMileage(entries: List<FuelEntry>): Double {
+        if (entries.size < 2) return 32.5
+        val sorted = entries.sortedBy { it.odometerKm }
+        val first = sorted.first()
+        val last = sorted.last()
+        val distance = last.odometerKm - first.odometerKm
+        val totalLiters = sorted.drop(1).sumOf { it.liters }
+        return if (totalLiters > 0 && distance > 0) (distance / totalLiters) else 32.5
     }
 
     // AI Mechanic Remote Connection

@@ -41,4 +41,13 @@ interface MotoBuddyApiService {
 
     @POST("api/v1/mechanic/chat.php")
     suspend fun sendMechanicChatMessage(@Body request: ChatRequestDto): Response<ApiResponse<ChatResponseDto>>
+
+    @GET("api/v1/fuel/index.php")
+    suspend fun getFuelEntries(): Response<ApiResponse<List<FuelEntryDto>>>
+
+    @POST("api/v1/fuel/index.php")
+    suspend fun addFuelEntry(@Body entry: FuelEntryDto): Response<ApiResponse<FuelEntryDto>>
+
+    @DELETE("api/v1/fuel/index.php")
+    suspend fun deleteFuelEntry(@Query("id") id: String): Response<ApiResponse<Unit>>
 }
