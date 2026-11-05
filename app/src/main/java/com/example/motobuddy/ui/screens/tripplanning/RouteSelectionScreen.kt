@@ -7,28 +7,25 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.BookmarkAdd
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.motobuddy.data.model.Trip
 import com.example.motobuddy.data.repository.MotoRepository
-import com.example.motobuddy.mapping.UnconfiguredMappingEngine
+import com.example.motobuddy.mapping.OsmRouteProvider
 import com.example.motobuddy.ui.theme.*
 import java.util.Locale
 
@@ -47,11 +44,26 @@ fun RouteSelectionScreen(navController: NavController) {
 
     var startLoc by remember { mutableStateOf("Pune") }
     var destLoc by remember { mutableStateOf("Mahabaleshwar") }
-    var distanceInput by remember { mutableStateOf("120") }
     var tripSavedSuccess by remember { mutableStateOf(false) }
 
-    val distanceKm = remember(distanceInput) { distanceInput.toDoubleOrNull() ?: 120.0 }
-    val estHours = remember(distanceKm) { String.format(Locale.US, "%.1f", distanceKm / 40.0).toDoubleOrNull() ?: 3.0 }
+    var isCalculating by remember { mutableStateOf(false) }
+    var calculatedDistKm by remember { mutableStateOf(120.0) }
+    var calculatedDurationMins by remember { mutableStateOf(180.0) }
+    var isOsmRoute by remember { mutableStateOf(true) }
+
+    LaunchedEffect(startLoc, destLoc) {
+        if (startLoc.isNotBlank() && destLoc.isNotBlank()) {
+            isCalculating = true
+            val route = OsmRouteProvider.calculateRoute(startLoc, destLoc)
+            calculatedDistKm = route.distanceKm
+            calculatedDurationMins = route.estimatedDurationMinutes
+            isOsmRoute = route.isRealTimeRouting
+            isCalculating = false
+        }
+    }
+
+    val distanceKm = calculatedDistKm
+    val estHours = remember(calculatedDurationMins) { String.format(Locale.US, "%.1f", calculatedDurationMins / 60.0).toDoubleOrNull() ?: 3.0 }
     val fuelCostEst = remember(distanceKm) { (distanceKm / 35.0) * 104.5 }
 
     fun launchExternalNavigation(destination: String) {
@@ -79,74 +91,79 @@ fun RouteSelectionScreen(navController: NavController) {
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(horizontal = 20.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .verticalScroll(rememberScrollState())
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Open Source Mapping Notice
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(cardColor)
-                    .border(1.dp, primaryCyan.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
-                    .padding(14.dp),
-                verticalAlignment = Alignment.CenterVertically
+            // OpenStreetMap Banner
+            Card(
+                colors = CardDefaults.cardColors(containerColor = cardColor),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(imageVector = Icons.Default.Info, contentDescription = "Info", tint = primaryCyan, modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.width(10.dp))
-                Column {
-                    Text("Map Engine: Open-Source Architecture", color = textWhite, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    Text(UnconfiguredMappingEngine.getStatusMessage(), color = textGrey, fontSize = 11.sp, lineHeight = 15.sp)
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(imageVector = Icons.Default.Navigation, contentDescription = "OSM", tint = primaryCyan)
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text("OpenStreetMap Routing", color = textWhite, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text(
+                            text = if (isCalculating) "Calculating route via OSRM Engine..." else if (isOsmRoute) "Live route calculated via OpenStreetMap OSRM" else "Routing estimate fallback active",
+                            color = textGrey,
+                            fontSize = 11.sp
+                        )
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
+            // Text Inputs
             OutlinedTextField(
                 value = startLoc,
                 onValueChange = { startLoc = it },
-                label = { Text("Starting Location", color = textGrey) },
-                leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = "Start", tint = primaryCyan) },
-                colors = OutlinedTextFieldDefaults.colors(focusedTextColor = textWhite, unfocusedTextColor = textWhite, focusedBorderColor = primaryCyan),
+                label = { Text("Start Location", color = textGrey) },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = primaryCyan,
+                    unfocusedBorderColor = DividerBorderColor,
+                    focusedTextColor = textWhite,
+                    unfocusedTextColor = textWhite,
+                    focusedContainerColor = cardColor,
+                    unfocusedContainerColor = cardColor
+                ),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             OutlinedTextField(
                 value = destLoc,
                 onValueChange = { destLoc = it },
                 label = { Text("Destination", color = textGrey) },
-                leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = "Dest", tint = secondaryOrange) },
-                colors = OutlinedTextFieldDefaults.colors(focusedTextColor = textWhite, unfocusedTextColor = textWhite, focusedBorderColor = primaryCyan),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            OutlinedTextField(
-                value = distanceInput,
-                onValueChange = { distanceInput = it },
-                label = { Text("Estimated Distance (km)", color = textGrey) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                colors = OutlinedTextFieldDefaults.colors(focusedTextColor = textWhite, unfocusedTextColor = textWhite, focusedBorderColor = primaryCyan),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = primaryCyan,
+                    unfocusedBorderColor = DividerBorderColor,
+                    focusedTextColor = textWhite,
+                    unfocusedTextColor = textWhite,
+                    focusedContainerColor = cardColor,
+                    unfocusedContainerColor = cardColor
+                ),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Summary Card
+            // Route Calculation Result Card
             Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = cardColor),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(1.dp, primaryCyan.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+                    .border(1.dp, primaryCyan.copy(alpha = 0.5f), RoundedCornerShape(16.dp)),
+                colors = CardDefaults.cardColors(containerColor = cardColor),
+                shape = RoundedCornerShape(16.dp)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Text("ROUTE SUMMARY", color = textGrey, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
@@ -178,7 +195,7 @@ fun RouteSelectionScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(24.dp))
 
             if (tripSavedSuccess) {
-                Text("✓ Trip saved to your Saved Trips!", color = SuccessGreen, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Text("✓ Trip saved to your Saved Trips & MySQL database!", color = SuccessGreen, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
@@ -199,31 +216,31 @@ fun RouteSelectionScreen(navController: NavController) {
                         tripSavedSuccess = true
                     }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = cardColor),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-            ) {
-                Icon(imageVector = Icons.Default.Bookmark, contentDescription = "Save", tint = primaryCyan)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Save to My Trips", color = textWhite, fontWeight = FontWeight.Bold)
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Navigation Handoff Button
-            Button(
-                onClick = { launchExternalNavigation(destLoc) },
                 colors = ButtonDefaults.buttonColors(containerColor = primaryCyan),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp)
             ) {
-                Icon(imageVector = Icons.Default.Navigation, contentDescription = "Start", tint = MidnightNavy)
+                Icon(imageVector = Icons.Default.BookmarkAdd, contentDescription = "Save", tint = MidnightNavy)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Launch External Navigation", color = MidnightNavy, fontWeight = FontWeight.Bold)
+                Text("Save Trip to My Account", color = MidnightNavy, fontWeight = FontWeight.Bold)
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Start Navigation
+            OutlinedButton(
+                onClick = { launchExternalNavigation(destLoc) },
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = primaryCyan),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+            ) {
+                Icon(imageVector = Icons.Default.Navigation, contentDescription = "Navigate", tint = primaryCyan)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Start Turn-By-Turn Navigation", fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(32.dp))
