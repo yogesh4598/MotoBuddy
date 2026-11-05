@@ -26,6 +26,8 @@ import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.WarningAmber
@@ -60,7 +62,8 @@ data class CarouselSlide(
     val title: String,
     val subtitle: String,
     val imageRes: Int,
-    val icon: ImageVector
+    val icon: ImageVector,
+    val route: String
 )
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -157,12 +160,40 @@ fun DashboardScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Auto-Sliding Hero Section (Carousel with Unique Subject Images and Icons)
+            // Auto-Sliding Hero Section (Clickable Carousel with Real-Life Photos and Navigation Links)
             val slides = listOf(
-                CarouselSlide("WEEKEND RECHARGED", "Take the scenic way.", "Discover new roads & scenic mountain passes", R.drawable.carousel_scenic_routes, Icons.Default.Landscape),
-                CarouselSlide("SMART PLANNING", "Plan Your Dream Ride", "Routes, weather & fuel cost estimation", R.drawable.carousel_fuel_station, Icons.Default.LocalGasStation),
-                CarouselSlide("AI MECHANIC", "Troubleshoot on the go", "Instant AI mechanical diagnostics & tips", R.drawable.carousel_ai_mechanic, Icons.Default.SmartToy),
-                CarouselSlide("COMMUNITY RIDES", "Ride with the pack", "Join group rides & trip invitations", R.drawable.carousel_community_rides, Icons.Default.People)
+                CarouselSlide(
+                    kicker = "WEEKEND RECHARGED",
+                    title = "Take the scenic way.",
+                    subtitle = "Discover new roads & scenic mountain passes",
+                    imageRes = R.drawable.carousel_scenic_real,
+                    icon = Icons.Default.Landscape,
+                    route = Screen.ScenicRoutes.route
+                ),
+                CarouselSlide(
+                    kicker = "SMART PLANNING",
+                    title = "Plan Your Dream Ride",
+                    subtitle = "Routes, weather & fuel cost estimation",
+                    imageRes = R.drawable.carousel_fuel_real,
+                    icon = Icons.Default.LocalGasStation,
+                    route = Screen.FuelCostCalculator.route
+                ),
+                CarouselSlide(
+                    kicker = "AI MECHANIC",
+                    title = "Troubleshoot on the go",
+                    subtitle = "Instant AI mechanical diagnostics & tips",
+                    imageRes = R.drawable.carousel_mechanic_real,
+                    icon = Icons.Default.SmartToy,
+                    route = Screen.MechanicAssistant.route
+                ),
+                CarouselSlide(
+                    kicker = "COMMUNITY RIDES",
+                    title = "Ride with the pack",
+                    subtitle = "Join group rides & trip invitations",
+                    imageRes = R.drawable.carousel_community_real,
+                    icon = Icons.Default.People,
+                    route = Screen.Community.route
+                )
             )
             val pagerState = rememberPagerState(pageCount = { slides.size })
 
@@ -187,11 +218,15 @@ fun DashboardScreen(navController: NavController) {
                         state = pagerState,
                         modifier = Modifier.fillMaxWidth()
                     ) { page ->
-                        Column {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { navController.navigate(slides[page].route) }
+                        ) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(140.dp)
+                                    .height(150.dp)
                                     .clip(RoundedCornerShape(12.dp))
                             ) {
                                 Image(
