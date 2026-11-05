@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.AltRoute
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CloudQueue
+import androidx.compose.material.icons.filled.Landscape
 import androidx.compose.material.icons.filled.LocalGasStation
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.NotificationsNone
@@ -58,7 +59,8 @@ data class CarouselSlide(
     val kicker: String,
     val title: String,
     val subtitle: String,
-    val imageRes: Int
+    val imageRes: Int,
+    val icon: ImageVector
 )
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -155,12 +157,12 @@ fun DashboardScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Auto-Sliding Hero Section (Carousel)
+            // Auto-Sliding Hero Section (Carousel with Unique Subject Images and Icons)
             val slides = listOf(
-                CarouselSlide("WEEKEND RECHARGED", "Take the scenic way.", "Discover new roads & scenic mountain passes", R.drawable.moto_landscape),
-                CarouselSlide("SMART PLANNING", "Plan Your Dream Ride", "Routes, weather & fuel cost estimation", R.drawable.moto_landscape),
-                CarouselSlide("AI MECHANIC", "Troubleshoot on the go", "Instant AI mechanical diagnostics & tips", R.drawable.moto_landscape),
-                CarouselSlide("COMMUNITY RIDES", "Ride with the pack", "Join group rides & trip invitations", R.drawable.moto_landscape)
+                CarouselSlide("WEEKEND RECHARGED", "Take the scenic way.", "Discover new roads & scenic mountain passes", R.drawable.carousel_scenic_routes, Icons.Default.Landscape),
+                CarouselSlide("SMART PLANNING", "Plan Your Dream Ride", "Routes, weather & fuel cost estimation", R.drawable.carousel_fuel_station, Icons.Default.LocalGasStation),
+                CarouselSlide("AI MECHANIC", "Troubleshoot on the go", "Instant AI mechanical diagnostics & tips", R.drawable.carousel_ai_mechanic, Icons.Default.SmartToy),
+                CarouselSlide("COMMUNITY RIDES", "Ride with the pack", "Join group rides & trip invitations", R.drawable.carousel_community_rides, Icons.Default.People)
             )
             val pagerState = rememberPagerState(pageCount = { slides.size })
 
@@ -177,7 +179,7 @@ fun DashboardScreen(navController: NavController) {
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
                     .background(cardColor)
-                    .border(1.dp, cardColorLighter, RoundedCornerShape(16.dp))
+                    .border(1.dp, CardBackground, RoundedCornerShape(16.dp))
                     .padding(16.dp)
             ) {
                 Column {
@@ -186,18 +188,47 @@ fun DashboardScreen(navController: NavController) {
                         modifier = Modifier.fillMaxWidth()
                     ) { page ->
                         Column {
-                            Image(
-                                painter = painterResource(id = slides[page].imageRes),
-                                contentDescription = slides[page].title,
-                                contentScale = ContentScale.Crop,
+                            Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(140.dp)
                                     .clip(RoundedCornerShape(12.dp))
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(text = slides[page].kicker, color = secondaryOrange, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                            Spacer(modifier = Modifier.height(4.dp))
+                            ) {
+                                Image(
+                                    painter = painterResource(id = slides[page].imageRes),
+                                    contentDescription = slides[page].title,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+
+                                // Category Badge Overlay with Matching Icon
+                                Row(
+                                    modifier = Modifier
+                                        .align(Alignment.TopStart)
+                                        .padding(10.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MidnightNavy.copy(alpha = 0.85f))
+                                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = slides[page].icon,
+                                        contentDescription = null,
+                                        tint = ElectricCyan,
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = slides[page].kicker,
+                                        color = TextPrimary,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 1.sp
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
                             Text(text = slides[page].title, color = textWhite, fontSize = 22.sp, fontWeight = FontWeight.Bold, lineHeight = 28.sp)
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(text = slides[page].subtitle, color = textGrey, fontSize = 13.sp)

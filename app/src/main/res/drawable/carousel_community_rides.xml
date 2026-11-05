@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="360dp"
+    android:height="200dp"
+    android:viewportWidth="360"
+    android:viewportHeight="200">
+
+    <!-- Dark Background -->
+    <path
+        android:fillColor="#0B0F14"
+        android:pathData="M0,0h360v200h-360z" />
+
+    <!-- Open Highway Perspective Surface -->
+    <path
+        android:fillColor="#151B23"
+        android:pathData="M0,200 L120,90 L240,90 L360,200 Z" />
+
+    <path
+        android:fillColor="#1D2630"
+        android:pathData="M40,200 L140,90 L220,90 L320,200 Z" />
+
+    <!-- Highway Center Lines (Vibrant Orange & Cyan) -->
+    <path
+        android:strokeColor="#FF6B00"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M180,200 L180,90" />
+
+    <path
+        android:strokeColor="#00D4FF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M150,200 L165,90 M210,200 L195,90" />
+
+    <!-- Group Rider Silhouettes (Rider 1 - Center Lead) -->
+    <!-- Helmet -->
+    <path
+        android:fillColor="#00D4FF"
+        android:pathData="M180,80m-12,0a12,12 0 1,0 24,0a12,12 0 1,0 -24,0" />
+    <!-- Visor -->
+    <path
+        android:fillColor="#0B0F14"
+        android:pathData="M174,78h12v4h-12z" />
+    <!-- Rider Shoulders -->
+    <path
+        android:fillColor="#242E39"
+        android:pathData="M160,105 C160,92 200,92 200,105 Z" />
+
+    <!-- Group Rider Silhouettes (Rider 2 - Left Flank) -->
+    <path
+        android:fillColor="#FF6B00"
+        android:pathData="M115,100m-9,0a9,9 0 1,0 18,0a9,9 0 1,0 -18,0" />
+    <path
+        android:fillColor="#242E39"
+        android:pathData="M100,120 C100,110 130,110 130,120 Z" />
+
+    <!-- Group Rider Silhouettes (Rider 3 - Right Flank) -->
+    <path
+        android:fillColor="#32D583"
+        android:pathData="M245,100m-9,0a9,9 0 1,0 18,0a9,9 0 1,0 -18,0" />
+    <path
+        android:fillColor="#242E39"
+        android:pathData="M230,120 C230,110 260,110 260,120 Z" />
+
+    <!-- Community Network Rays / Connection Lines in Horizon -->
+    <path
+        android:strokeColor="#00D4FF"
+        android:strokeWidth="1"
+        android:pathData="M115,100 L180,80 L245,100 M115,100 L245,100" />
+</vector>

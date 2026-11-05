@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="360dp"
+    android:height="200dp"
+    android:viewportWidth="360"
+    android:viewportHeight="200">
+
+    <!-- Dark Background -->
+    <path
+        android:fillColor="#0B0F14"
+        android:pathData="M0,0h360v200h-360z" />
+
+    <!-- Circuit Board Backdrop Lines -->
+    <path
+        android:strokeColor="#1D2630"
+        android:strokeWidth="2"
+        android:pathData="M20,40H120L150,70V160 M340,160H260L230,130V30" />
+
+    <!-- Large Engine Gear Ring -->
+    <path
+        android:strokeColor="#242E39"
+        android:strokeWidth="12"
+        android:pathData="M180,100m-50,0a50,50 0 1,0 100,0a50,50 0 1,0 -100,0" />
+
+    <!-- Gear Teeth -->
+    <path
+        android:strokeColor="#242E39"
+        android:strokeWidth="8"
+        android:strokeLineCap="square"
+        android:pathData="M180,38V48 M180,152V162 M118,100H128 M232,100H242 M136,56L143,63 M217,137L224,144 M136,144L143,137 M217,63L224,56" />
+
+    <!-- Crossed Mechanic Wrench -->
+    <path
+        android:strokeColor="#FF6B00"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:pathData="M140,140L220,60 M220,60C225,55 235,55 240,60 C245,65 245,75 240,80" />
+
+    <!-- AI Diagnostic Scan Ring (Electric Cyan) -->
+    <path
+        android:strokeColor="#00D4FF"
+        android:strokeWidth="3"
+        android:pathData="M180,100m-35,0a35,35 0 1,0 70,0a35,35 0 1,0 -70,0" />
+
+    <!-- AI Pulse Spark / Waveform -->
+    <path
+        android:strokeColor="#00D4FF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M150,100 L165,100 L172,85 L180,115 L188,95 L195,100 L210,100" />
+
+    <!-- Diagnostic Circuit Nodes -->
+    <path
+        android:fillColor="#00D4FF"
+        android:pathData="M120,40m-4,0a4,4 0 1,0 8,0a4,4 0 1,0 -8,0 M260,160m-4,0a4,4 0 1,0 8,0a4,4 0 1,0 -8,0" />
+</vector>

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="360dp"
+    android:height="200dp"
+    android:viewportWidth="360"
+    android:viewportHeight="200">
+
+    <!-- Dark Background -->
+    <path
+        android:fillColor="#0B0F14"
+        android:pathData="M0,0h360v200h-360z" />
+
+    <!-- Secondary Background Card Layer -->
+    <path
+        android:fillColor="#151B23"
+        android:pathData="M20,20h320v160h-320z" />
+
+    <!-- Diagonal Accent Stripe -->
+    <path
+        android:fillColor="#1D2630"
+        android:pathData="M160,20 L340,20 L340,180 L240,180 Z" />
+
+    <!-- Petrol Pump Housing Body -->
+    <path
+        android:fillColor="#242E39"
+        android:pathData="M80,60h70v100h-70z" />
+
+    <!-- Fuel Screen Display -->
+    <path
+        android:fillColor="#0B0F14"
+        android:pathData="M90,75h50v30h-50z" />
+
+    <!-- Digital Fuel Cost Indicator Line (Orange Glow) -->
+    <path
+        android:strokeColor="#FF6B00"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M95,90h40" />
+
+    <!-- Fuel Nozzle & Hose (Cyan Accent) -->
+    <path
+        android:strokeColor="#00D4FF"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M150,110 C175,110 175,150 195,130 L220,100 L210,90 L195,110" />
+
+    <!-- Fuel Drop Icon -->
+    <path
+        android:fillColor="#FF6B00"
+        android:pathData="M260,80 C260,80 240,110 240,125 C240,136 249,145 260,145 C271,145 280,136 280,125 C280,110 260,80 260,80 Z" />
+
+    <!-- Speedometer / Trip Meter Ring in background -->
+    <path
+        android:strokeColor="#00D4FF"
+        android:strokeWidth="3"
+        android:pathData="M310,130 A30,30 0 1,0 270,145" />
+</vector>

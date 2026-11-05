@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="360dp"
+    android:height="200dp"
+    android:viewportWidth="360"
+    android:viewportHeight="200">
+
+    <!-- Deep Dark Midnight Background -->
+    <path
+        android:fillColor="#0B0F14"
+        android:pathData="M0,0h360v200h-360z" />
+
+    <!-- Distant Mountains Layer 1 -->
+    <path
+        android:fillColor="#151B23"
+        android:pathData="M0,130 L50,95 L110,120 L180,80 L250,125 L310,90 L360,130 L360,200 L0,200 Z" />
+
+    <!-- Midground Mountains Layer 2 -->
+    <path
+        android:fillColor="#1D2630"
+        android:pathData="M0,145 L70,110 L140,135 L210,100 L280,140 L360,115 L360,200 L0,200 Z" />
+
+    <!-- Glowing Horizon Sun -->
+    <path
+        android:fillColor="#FF6B00"
+        android:pathData="M180,100m-20,0a20,20 0 1,0 40,0a20,20 0 1,0 -40,0" />
+
+    <!-- Winding Scenic Mountain Road -->
+    <path
+        android:fillColor="#242E39"
+        android:pathData="M140,200 C150,160 210,150 180,120 C170,105 190,95 180,95 C185,95 160,105 165,120 C190,150 120,160 110,200 Z" />
+
+    <!-- Electric Cyan Winding Road Highlight Line -->
+    <path
+        android:strokeColor="#00D4FF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M125,200 C135,160 200,150 172,120 C165,108 180,95 180,95" />
+
+    <!-- Compass Rose / Elevation Badge Graphic in top right -->
+    <path
+        android:strokeColor="#00D4FF"
+        android:strokeWidth="2"
+        android:pathData="M320,30 L320,50 M310,40 L330,40" />
+    <path
+        android:fillColor="#00D4FF"
+        android:pathData="M320,30 L324,40 L320,38 L316,40 Z" />
+</vector>
