@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="360dp"
+    android:height="200dp"
+    android:viewportWidth="360"
+    android:viewportHeight="200">
+
+    <!-- Background -->
+    <path
+        android:fillColor="#0B0F14"
+        android:pathData="M0,0h360v200h-360z" />
+
+    <!-- Diagnostic Circuit Grid Lines -->
+    <path
+        android:strokeColor="#1D2630"
+        android:strokeWidth="2"
+        android:pathData="M15,35H110L140,65V165 M345,165H265L235,135V25" />
+
+    <!-- Mechanical Engine Gear Assembly Ring -->
+    <path
+        android:strokeColor="#242E39"
+        android:strokeWidth="12"
+        android:pathData="M180,100m-48,0a48,48 0 1,0 96,0a48,48 0 1,0 -96,0" />
+
+    <!-- Gear Teeth -->
+    <path
+        android:strokeColor="#242E39"
+        android:strokeWidth="8"
+        android:strokeLineCap="square"
+        android:pathData="M180,42V52 M180,148V158 M122,100H132 M228,100H238 M139,59L146,66 M214,134L221,141 M139,141L146,134 M214,66L221,59" />
+
+    <!-- Mechanic Wrench Tool (Vibrant Orange Accent) -->
+    <path
+        android:strokeColor="#FF6B00"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:pathData="M140,140L220,60 M220,60C225,55 235,55 240,60 C245,65 245,75 240,80" />
+
+    <!-- AI Diagnostic Scan Ring (Electric Cyan Glow) -->
+    <path
+        android:strokeColor="#00D4FF"
+        android:strokeWidth="3"
+        android:pathData="M180,100m-32,0a32,32 0 1,0 64,0a32,32 0 1,0 -64,0" />
+
+    <!-- Diagnostic Spark / ECG Pulse Line -->
+    <path
+        android:strokeColor="#00D4FF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M152,100 L165,100 L172,82 L180,118 L188,92 L195,100 L208,100" />
+</vector>

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="360dp"
+    android:height="200dp"
+    android:viewportWidth="360"
+    android:viewportHeight="200">
+
+    <!-- Dark Background -->
+    <path
+        android:fillColor="#0B0F14"
+        android:pathData="M0,0h360v200h-360z" />
+
+    <!-- Open Highway Perspective Road -->
+    <path
+        android:fillColor="#151B23"
+        android:pathData="M0,200 L110,85 L250,85 L360,200 Z" />
+
+    <path
+        android:fillColor="#1D2630"
+        android:pathData="M35,200 L130,85 L230,85 L325,200 Z" />
+
+    <!-- Highway Lane Dividers (Electric Cyan & Orange) -->
+    <path
+        android:strokeColor="#FF6B00"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M180,200 L180,85" />
+
+    <path
+        android:strokeColor="#00D4FF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M145,200 L160,85 M215,200 L200,85" />
+
+    <!-- Group Rider Silhouettes (Lead Rider - Cyan Helmet) -->
+    <path
+        android:fillColor="#00D4FF"
+        android:pathData="M180,75m-11,0a11,11 0 1,0 22,0a11,11 0 1,0 -22,0" />
+    <path
+        android:fillColor="#0B0F14"
+        android:pathData="M174,73h12v4h-12z" />
+    <path
+        android:fillColor="#242E39"
+        android:pathData="M162,100 C162,88 198,88 198,100 Z" />
+
+    <!-- Flank Rider 1 (Orange Helmet) -->
+    <path
+        android:fillColor="#FF6B00"
+        android:pathData="M115,95m-9,0a9,9 0 1,0 18,0a9,9 0 1,0 -18,0" />
+    <path
+        android:fillColor="#242E39"
+        android:pathData="M100,115 C100,105 130,105 130,115 Z" />
+
+    <!-- Flank Rider 2 (Green Helmet) -->
+    <path
+        android:fillColor="#32D583"
+        android:pathData="M245,95m-9,0a9,9 0 1,0 18,0a9,9 0 1,0 -18,0" />
+    <path
+        android:fillColor="#242E39"
+        android:pathData="M230,115 C230,105 260,105 260,115 Z" />
+
+    <!-- Social Connection Web Lines -->
+    <path
+        android:strokeColor="#00D4FF"
+        android:strokeWidth="1.5"
+        android:pathData="M115,95 L180,75 L245,95 M115,95 L245,95" />
+</vector>

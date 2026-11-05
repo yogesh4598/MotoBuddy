@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="360dp"
+    android:height="200dp"
+    android:viewportWidth="360"
+    android:viewportHeight="200">
+
+    <!-- Background -->
+    <path
+        android:fillColor="#0B0F14"
+        android:pathData="M0,0h360v200h-360z" />
+
+    <!-- Card Base -->
+    <path
+        android:fillColor="#151B23"
+        android:pathData="M15,15h330v170h-330z" />
+
+    <!-- Fuel Dispenser Body -->
+    <path
+        android:fillColor="#1D2630"
+        android:pathData="M60,50h80v110h-80z" />
+
+    <!-- Fuel Meter Screen -->
+    <path
+        android:fillColor="#0B0F14"
+        android:pathData="M70,65h60v35h-60z" />
+
+    <!-- Fuel Digital Meter Lines -->
+    <path
+        android:strokeColor="#00D4FF"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:pathData="M75,78h50 M75,88h35" />
+
+    <!-- Fuel Hose & Nozzle Gun -->
+    <path
+        android:strokeColor="#FF6B00"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M140,105 C165,105 165,155 185,135 L210,100 L200,90 L185,115" />
+
+    <!-- Big Fuel Drop Icon -->
+    <path
+        android:fillColor="#FF6B00"
+        android:pathData="M250,70 C250,70 230,100 230,115 C230,126 239,135 250,135 C261,135 270,126 270,115 C270,100 250,70 250,70 Z" />
+
+    <!-- Trip Distance & Mileage Meter Gauge Arc -->
+    <path
+        android:strokeColor="#00D4FF"
+        android:strokeWidth="3"
+        android:pathData="M310,120 A30,30 0 1,0 270,135" />
+
+    <path
+        android:strokeColor="#32D583"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M290,105 L302,93" />
+</vector>

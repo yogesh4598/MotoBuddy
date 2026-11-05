@@ -160,13 +160,13 @@ fun DashboardScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Auto-Sliding Hero Section (Clickable Carousel with Real-Life Photos and Navigation Links)
+            // Auto-Sliding Hero Section (Clickable Carousel with Subject-Relevant Graphics)
             val slides = listOf(
                 CarouselSlide(
                     kicker = "WEEKEND RECHARGED",
                     title = "Take the scenic way.",
                     subtitle = "Discover new roads & scenic mountain passes",
-                    imageRes = R.drawable.carousel_scenic_real,
+                    imageRes = R.drawable.slide_scenic_pass,
                     icon = Icons.Default.Landscape,
                     route = Screen.ScenicRoutes.route
                 ),
@@ -174,7 +174,7 @@ fun DashboardScreen(navController: NavController) {
                     kicker = "SMART PLANNING",
                     title = "Plan Your Dream Ride",
                     subtitle = "Routes, weather & fuel cost estimation",
-                    imageRes = R.drawable.carousel_fuel_real,
+                    imageRes = R.drawable.slide_fuel_planner,
                     icon = Icons.Default.LocalGasStation,
                     route = Screen.FuelCostCalculator.route
                 ),
@@ -182,7 +182,7 @@ fun DashboardScreen(navController: NavController) {
                     kicker = "AI MECHANIC",
                     title = "Troubleshoot on the go",
                     subtitle = "Instant AI mechanical diagnostics & tips",
-                    imageRes = R.drawable.carousel_mechanic_real,
+                    imageRes = R.drawable.slide_ai_mechanic_diag,
                     icon = Icons.Default.SmartToy,
                     route = Screen.MechanicAssistant.route
                 ),
@@ -190,7 +190,7 @@ fun DashboardScreen(navController: NavController) {
                     kicker = "COMMUNITY RIDES",
                     title = "Ride with the pack",
                     subtitle = "Join group rides & trip invitations",
-                    imageRes = R.drawable.carousel_community_real,
+                    imageRes = R.drawable.slide_community_pack,
                     icon = Icons.Default.People,
                     route = Screen.Community.route
                 )
@@ -236,7 +236,7 @@ fun DashboardScreen(navController: NavController) {
                                     modifier = Modifier.fillMaxSize()
                                 )
 
-                                // Category Badge Overlay with Matching Icon
+                                // Subject Category Badge Overlay
                                 Row(
                                     modifier = Modifier
                                         .align(Alignment.TopStart)

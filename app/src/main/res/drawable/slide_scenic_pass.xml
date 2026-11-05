@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="360dp"
+    android:height="200dp"
+    android:viewportWidth="360"
+    android:viewportHeight="200">
+
+    <!-- Sky Background -->
+    <path
+        android:fillColor="#0B0F14"
+        android:pathData="M0,0h360v200h-360z" />
+
+    <!-- Distant Mountain Ranges -->
+    <path
+        android:fillColor="#151B23"
+        android:pathData="M0,120 L45,85 L100,115 L170,75 L240,118 L300,85 L360,120 L360,200 L0,200 Z" />
+
+    <!-- Midground Hills -->
+    <path
+        android:fillColor="#1D2630"
+        android:pathData="M0,135 L65,100 L135,128 L205,92 L275,132 L360,105 L360,200 L0,200 Z" />
+
+    <!-- Sunset Horizon Sun -->
+    <path
+        android:fillColor="#FF6B00"
+        android:pathData="M170,92m-18,0a18,18 0 1,0 36,0a18,18 0 1,0 -36,0" />
+
+    <!-- Winding Scenic Highway Pass -->
+    <path
+        android:fillColor="#242E39"
+        android:pathData="M130,200 C140,155 200,145 170,115 C160,100 180,90 170,90 C175,90 150,100 155,115 C180,145 110,155 100,200 Z" />
+
+    <!-- Highway Centerline (Electric Cyan Scenic Ribbon) -->
+    <path
+        android:strokeColor="#00D4FF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M115,200 C125,155 190,145 162,115 C155,103 170,90 170,90" />
+
+    <!-- Mountain Altitude Badge -->
+    <path
+        android:strokeColor="#00D4FF"
+        android:strokeWidth="2"
+        android:pathData="M310,25 L310,45 M300,35 L320,35" />
+    <path
+        android:fillColor="#00D4FF"
+        android:pathData="M310,25 L314,35 L310,33 L306,35 Z" />
+</vector>
