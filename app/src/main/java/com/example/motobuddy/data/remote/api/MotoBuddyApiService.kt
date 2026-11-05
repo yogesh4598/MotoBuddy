@@ -50,4 +50,10 @@ interface MotoBuddyApiService {
 
     @DELETE("api/v1/fuel/index.php")
     suspend fun deleteFuelEntry(@Query("id") id: String): Response<ApiResponse<Unit>>
+
+    @GET("api/v1/community/rides.php")
+    suspend fun getGroupRides(): Response<ApiResponse<List<GroupRideDto>>>
+
+    @POST("api/v1/community/rides.php")
+    suspend fun createGroupRide(@Body ride: GroupRideDto): Response<ApiResponse<GroupRideDto>>
 }
