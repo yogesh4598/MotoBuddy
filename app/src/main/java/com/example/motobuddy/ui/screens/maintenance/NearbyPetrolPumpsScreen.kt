@@ -1,7 +1,10 @@
 package com.example.motobuddy.ui.screens.maintenance
 
+import android.Manifest
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,8 +13,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.LocalGasStation
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.motobuddy.mapping.LocationHelper
 import com.example.motobuddy.mapping.OsmRouteProvider
 import com.example.motobuddy.mapping.PlaceSearchResult
 import com.example.motobuddy.ui.theme.*
@@ -43,13 +49,25 @@ fun NearbyPetrolPumpsScreen(navController: NavController) {
     val pumpList = remember { mutableStateListOf<PlaceSearchResult>() }
     var isLoading by remember { mutableStateOf(true) }
     var isError by remember { mutableStateOf(false) }
+    var manualLocationQuery by remember { mutableStateOf("") }
+    var locationStatusText by remember { mutableStateOf("Querying OpenStreetMap Nearby...") }
 
-    fun fetchFuelStations() {
+    fun fetchFuelStations(customLocation: String? = null) {
         coroutineScope.launch {
             isLoading = true
             isError = false
             try {
-                val results = OsmRouteProvider.searchNearbyPlaces("petrol pump", "Pune")
+                val userLoc = LocationHelper.getCurrentLocation(context)
+                val results = if (userLoc != null && customLocation.isNullOrBlank()) {
+                    locationStatusText = String.format(Locale.US, "GPS Center: %.3f, %.3f", userLoc.latitude, userLoc.longitude)
+                    OsmRouteProvider.searchNearbyPlacesWithCoords("petrol pump", null, userLoc.latitude, userLoc.longitude)
+                } else if (!customLocation.isNullOrBlank()) {
+                    locationStatusText = "Search Location: $customLocation"
+                    OsmRouteProvider.searchNearbyPlacesWithCoords("petrol pump", customLocation, null, null)
+                } else {
+                    locationStatusText = "Location Permission / GPS Required for Nearby Auto-Search"
+                    emptyList()
+                }
                 pumpList.clear()
                 pumpList.addAll(results)
             } catch (e: Exception) {
@@ -60,8 +78,20 @@ fun NearbyPetrolPumpsScreen(navController: NavController) {
         }
     }
 
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            fetchFuelStations()
+        }
+    }
+
     LaunchedEffect(Unit) {
-        fetchFuelStations()
+        if (LocationHelper.hasLocationPermission(context)) {
+            fetchFuelStations()
+        } else {
+            isLoading = false
+        }
     }
 
     fun launchNavigation(address: String) {
@@ -81,7 +111,7 @@ fun NearbyPetrolPumpsScreen(navController: NavController) {
                     }
                 },
                 actions = {
-                    IconButton(onClick = { fetchFuelStations() }) {
+                    IconButton(onClick = { fetchFuelStations(manualLocationQuery.ifBlank { null }) }) {
                         Icon(imageVector = Icons.Default.Refresh, contentDescription = "Refresh", tint = primaryCyan)
                     }
                 }
@@ -112,10 +142,45 @@ fun NearbyPetrolPumpsScreen(navController: NavController) {
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text("OPEN-SOURCE PETROL PUMP SEARCH", color = primaryCyan, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                            Text("OpenStreetMap Real-Time Search Results", color = textWhite, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text(locationStatusText, color = textWhite, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = manualLocationQuery,
+                        onValueChange = { manualLocationQuery = it },
+                        placeholder = { Text("Enter city or area name...", color = textGrey, fontSize = 12.sp) },
+                        modifier = Modifier.weight(1f),
+                        trailingIcon = {
+                            IconButton(onClick = { fetchFuelStations(manualLocationQuery) }) {
+                                Icon(imageVector = Icons.Default.Search, contentDescription = "Search", tint = primaryCyan)
+                            }
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = primaryCyan, unfocusedBorderColor = cardColor, focusedTextColor = textWhite, unfocusedTextColor = textWhite),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    IconButton(
+                        onClick = {
+                            if (LocationHelper.hasLocationPermission(context)) {
+                                fetchFuelStations()
+                            } else {
+                                permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                            }
+                        },
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.MyLocation, contentDescription = "GPS", tint = primaryCyan)
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
@@ -139,9 +204,9 @@ fun NearbyPetrolPumpsScreen(navController: NavController) {
                         Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("Unable to fetch fuel stations", color = textWhite, fontWeight = FontWeight.Bold)
                             Spacer(modifier = Modifier.height(6.dp))
-                            Text("Network error occurred while querying OpenStreetMap Nominatim.", color = textGrey, fontSize = 12.sp)
+                            Text("Network or service error occurred while querying OpenStreetMap.", color = textGrey, fontSize = 12.sp)
                             Spacer(modifier = Modifier.height(14.dp))
-                            Button(onClick = { fetchFuelStations() }, colors = ButtonDefaults.buttonColors(containerColor = primaryCyan)) {
+                            Button(onClick = { fetchFuelStations(manualLocationQuery.ifBlank { null }) }, colors = ButtonDefaults.buttonColors(containerColor = primaryCyan)) {
                                 Text("Retry Search", color = MidnightNavy, fontWeight = FontWeight.Bold)
                             }
                         }
@@ -157,7 +222,7 @@ fun NearbyPetrolPumpsScreen(navController: NavController) {
                         Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("No Fuel Stations Found", color = textWhite, fontWeight = FontWeight.Bold)
                             Spacer(modifier = Modifier.height(6.dp))
-                            Text("No petrol pump places returned by OpenStreetMap for this region.", color = textGrey, fontSize = 12.sp)
+                            Text("No petrol pump places returned by OpenStreetMap for this region. Use 'GPS' or enter a location above.", color = textGrey, fontSize = 12.sp)
                         }
                     }
                 }

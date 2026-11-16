@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
+import com.example.motobuddy.mapping.LocationHelper
 import com.example.motobuddy.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -72,14 +73,28 @@ fun WeatherRoadConditionsScreen(navController: NavController) {
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
+    fun requestGpsLocation() {
+        coroutineScope.launch {
+            isLoading = true
+            val loc = LocationHelper.getCurrentLocation(context)
+            if (loc != null) {
+                currentLat = loc.latitude
+                currentLon = loc.longitude
+                selectedLocationName = String.format(Locale.US, "GPS: %.3f, %.3f", loc.latitude, loc.longitude)
+            } else {
+                errorMessage = "GPS location unavailable. Ensure Location/GPS services are enabled."
+                isLoading = false
+            }
+        }
+    }
+
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            selectedLocationName = "Current Location (GPS)"
-            // GPS coordinates for Pune / region
-            currentLat = 18.5204
-            currentLon = 73.8567
+            requestGpsLocation()
+        } else {
+            errorMessage = "Location permission denied. You can still select a region manually."
         }
     }
 
@@ -91,7 +106,7 @@ fun WeatherRoadConditionsScreen(navController: NavController) {
                 val url = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,weather_code,wind_speed_10m,visibility&hourly=precipitation_probability&forecast_days=1"
                 val request = Request.Builder()
                     .url(url)
-                    .header("User-Agent", "MotoBuddyAndroid/1.0")
+                    .header("User-Agent", "MotoBuddyAndroid/1.0 (contact@motobuddy.app)")
                     .build()
 
                 val result = withContext(Dispatchers.IO) {
@@ -108,16 +123,27 @@ fun WeatherRoadConditionsScreen(navController: NavController) {
                                     val appTemp = current.optDouble("apparent_temperature", Double.NaN)
                                     val humidity = current.optInt("relative_humidity_2m", -1)
                                     val wind = current.optDouble("wind_speed_10m", Double.NaN)
+                                    val currentTimeStr = current.optString("time", "")
                                     val visibilityMeters = if (current.has("visibility")) current.optDouble("visibility", Double.NaN) else Double.NaN
                                     val rain = current.optDouble("rain", 0.0)
                                     val code = current.optInt("weather_code", 0)
 
                                     var rainProb: Int? = null
-                                    if (hourly != null && hourly.has("precipitation_probability")) {
-                                        val probs = hourly.optJSONArray("precipitation_probability")
-                                        if (probs != null && probs.length() > 0) {
-                                            rainProb = probs.optInt(0, -1)
-                                            if (rainProb < 0) rainProb = null
+                                    if (hourly != null && hourly.has("precipitation_probability") && hourly.has("time")) {
+                                        val timeArray = hourly.optJSONArray("time")
+                                        val probsArray = hourly.optJSONArray("precipitation_probability")
+                                        if (timeArray != null && probsArray != null) {
+                                            var matchIdx = 0
+                                            for (i in 0 until timeArray.length()) {
+                                                if (timeArray.optString(i).startsWith(currentTimeStr.take(13))) {
+                                                    matchIdx = i
+                                                    break
+                                                }
+                                            }
+                                            if (matchIdx < probsArray.length()) {
+                                                val p = probsArray.optInt(matchIdx, -1)
+                                                if (p >= 0) rainProb = p
+                                            }
                                         }
                                     }
 
@@ -202,11 +228,8 @@ fun WeatherRoadConditionsScreen(navController: NavController) {
                 Text("SELECT RIDING REGION", color = textGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 TextButton(
                     onClick = {
-                        val hasPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-                        if (hasPermission) {
-                            selectedLocationName = "Current Location (GPS)"
-                            currentLat = 18.5204
-                            currentLon = 73.8567
+                        if (LocationHelper.hasLocationPermission(context)) {
+                            requestGpsLocation()
                         } else {
                             locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
                         }
@@ -214,7 +237,7 @@ fun WeatherRoadConditionsScreen(navController: NavController) {
                 ) {
                     Icon(imageVector = Icons.Default.MyLocation, contentDescription = "GPS", tint = primaryCyan, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Use My GPS", color = primaryCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text("Use Device GPS", color = primaryCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             }
 

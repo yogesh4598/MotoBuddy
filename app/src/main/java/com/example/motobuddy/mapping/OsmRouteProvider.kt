@@ -29,7 +29,7 @@ object OsmRouteProvider : MapProvider, RouteProvider, PlaceSearchProvider {
                 val url = "https://router.project-osrm.org/route/v1/driving/${originCoord.second},${originCoord.first};${destCoord.second},${destCoord.first}?overview=false"
                 val request = Request.Builder()
                     .url(url)
-                    .header("User-Agent", "MotoBuddyAndroid/1.0")
+                    .header("User-Agent", "MotoBuddyAndroid/1.0 (contact@motobuddy.app)")
                     .build()
 
                 client.newCall(request).execute().use { response ->
@@ -63,12 +63,12 @@ object OsmRouteProvider : MapProvider, RouteProvider, PlaceSearchProvider {
             e.printStackTrace()
         }
 
-        val estDist = (origin.length + destination.length) * 5.5 + 45.0
+        // Return unconfigured empty route result if geocoding/routing fails (no fake calculations)
         return@withContext RouteResult(
             origin = origin,
             destination = destination,
-            distanceKm = estDist,
-            estimatedDurationMinutes = (estDist / 50.0) * 60.0,
+            distanceKm = 0.0,
+            estimatedDurationMinutes = 0.0,
             isRealTimeRouting = false
         )
     }
@@ -79,7 +79,7 @@ object OsmRouteProvider : MapProvider, RouteProvider, PlaceSearchProvider {
             val url = "https://nominatim.openstreetmap.org/search?format=json&q=$encoded&limit=1"
             val request = Request.Builder()
                 .url(url)
-                .header("User-Agent", "MotoBuddyAndroid/1.0")
+                .header("User-Agent", "MotoBuddyAndroid/1.0 (contact@motobuddy.app)")
                 .build()
 
             client.newCall(request).execute().use { response ->
@@ -117,7 +117,7 @@ object OsmRouteProvider : MapProvider, RouteProvider, PlaceSearchProvider {
 
             val request = Request.Builder()
                 .url(url)
-                .header("User-Agent", "MotoBuddyAndroid/1.0")
+                .header("User-Agent", "MotoBuddyAndroid/1.0 (contact@motobuddy.app)")
                 .build()
 
             client.newCall(request).execute().use { response ->
@@ -153,7 +153,7 @@ object OsmRouteProvider : MapProvider, RouteProvider, PlaceSearchProvider {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        return@withContext list
+        return@withContext list.sortedBy { it.distanceKm ?: Double.MAX_VALUE }
     }
 
     private fun haversineKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {

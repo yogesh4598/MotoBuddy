@@ -48,6 +48,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
 
+    // Location Services for Genuine Device GPS
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+
     // Retrofit & OkHttp Networking for PHP REST API
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
     implementation("com.squareup.retrofit2:converter-gson:2.11.0")
