@@ -1,5 +1,9 @@
 package com.example.motobuddy.ui.screens.tripplanning
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -10,20 +14,20 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.CloudQueue
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Thermostat
 import androidx.compose.material.icons.filled.WaterDrop
-import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.example.motobuddy.ui.theme.*
 import kotlinx.coroutines.Dispatchers
@@ -34,13 +38,14 @@ import okhttp3.Request
 import org.json.JSONObject
 import java.util.Locale
 
-data class WeatherData(
+data class OpenMeteoWeatherData(
     val locationName: String,
     val temperature: Double,
     val apparentTemp: Double,
     val humidity: Int,
     val windSpeed: Double,
-    val rainProb: Int,
+    val rainProbPercentage: Int?,
+    val visibilityKm: Double?,
     val conditionText: String,
     val isWetRoadCaution: Boolean
 )
@@ -59,78 +64,104 @@ fun WeatherRoadConditionsScreen(navController: NavController) {
     val textWhite = MaterialTheme.colorScheme.onBackground
     val textGrey = MaterialTheme.colorScheme.onSurfaceVariant
 
-    var selectedLocation by remember { mutableStateOf("Pune (Western Ghats)") }
-    var weatherData by remember { mutableStateOf<WeatherData?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
-    var isError by remember { mutableStateOf(false) }
+    var selectedLocationName by remember { mutableStateOf("Pune (Western Ghats)") }
+    var currentLat by remember { mutableStateOf(18.5204) }
+    var currentLon by remember { mutableStateOf(73.8567) }
 
-    fun fetchWeatherData(location: String) {
+    var weatherData by remember { mutableStateOf<OpenMeteoWeatherData?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            selectedLocationName = "Current Location (GPS)"
+            // GPS coordinates for Pune / region
+            currentLat = 18.5204
+            currentLon = 73.8567
+        }
+    }
+
+    fun fetchWeatherFromOpenMeteo(lat: Double, lon: Double, locName: String) {
         coroutineScope.launch {
             isLoading = true
-            isError = false
+            errorMessage = null
             try {
-                // Coordinates for Western Ghats / Pune / Mahabaleshwar
-                val (lat, lon) = when {
-                    location.contains("Mahabaleshwar") -> Pair(17.9237, 73.6586)
-                    location.contains("Lonavala") -> Pair(18.7557, 73.4091)
-                    location.contains("Goa") -> Pair(15.2993, 74.1240)
-                    else -> Pair(18.5204, 73.8567)
-                }
+                val url = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,weather_code,wind_speed_10m,visibility&hourly=precipitation_probability&forecast_days=1"
+                val request = Request.Builder()
+                    .url(url)
+                    .header("User-Agent", "MotoBuddyAndroid/1.0")
+                    .build()
 
-                val url = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,weather_code,wind_speed_10m"
-                val request = Request.Builder().url(url).header("User-Agent", "MotoBuddyAndroid/1.0").build()
-
-                val data = withContext(Dispatchers.IO) {
+                val result = withContext(Dispatchers.IO) {
                     client.newCall(request).execute().use { response ->
                         if (response.isSuccessful) {
                             val body = response.body?.string()
                             if (!body.isNullOrBlank()) {
                                 val json = JSONObject(body)
-                                val current = json.getJSONObject("current")
-                                val temp = current.optDouble("temperature_2m", 26.5)
-                                val appTemp = current.optDouble("apparent_temperature", 27.0)
-                                val humidity = current.optInt("relative_humidity_2m", 62)
-                                val wind = current.optDouble("wind_speed_10m", 14.2)
-                                val rain = current.optDouble("rain", 0.0)
-                                val code = current.optInt("weather_code", 0)
+                                val current = json.optJSONObject("current")
+                                val hourly = json.optJSONObject("hourly")
 
-                                val condition = when {
-                                    rain > 0.5 || code in 51..67 -> "Rain / Wet Road Conditions"
-                                    code in 1..3 -> "Partly Cloudy · Good Visibility"
-                                    else -> "Clear & Dry Riding Weather"
-                                }
-                                val isCaution = rain > 0.2 || code in 51..67
+                                if (current != null) {
+                                    val temp = current.optDouble("temperature_2m", Double.NaN)
+                                    val appTemp = current.optDouble("apparent_temperature", Double.NaN)
+                                    val humidity = current.optInt("relative_humidity_2m", -1)
+                                    val wind = current.optDouble("wind_speed_10m", Double.NaN)
+                                    val visibilityMeters = if (current.has("visibility")) current.optDouble("visibility", Double.NaN) else Double.NaN
+                                    val rain = current.optDouble("rain", 0.0)
+                                    val code = current.optInt("weather_code", 0)
 
-                                WeatherData(
-                                    locationName = location,
-                                    temperature = temp,
-                                    apparentTemp = appTemp,
-                                    humidity = humidity,
-                                    windSpeed = wind,
-                                    rainProb = if (isCaution) 75 else 10,
-                                    conditionText = condition,
-                                    isWetRoadCaution = isCaution
-                                )
+                                    var rainProb: Int? = null
+                                    if (hourly != null && hourly.has("precipitation_probability")) {
+                                        val probs = hourly.optJSONArray("precipitation_probability")
+                                        if (probs != null && probs.length() > 0) {
+                                            rainProb = probs.optInt(0, -1)
+                                            if (rainProb < 0) rainProb = null
+                                        }
+                                    }
+
+                                    val condition = when {
+                                        rain > 0.1 || code in 51..67 -> "Rain / Wet Road Conditions"
+                                        code in 1..3 -> "Partly Cloudy · Normal Visibility"
+                                        else -> "Clear & Dry Riding Weather"
+                                    }
+                                    val isCaution = rain > 0.1 || code in 51..67
+
+                                    val visKm = if (!visibilityMeters.isNaN()) visibilityMeters / 1000.0 else null
+
+                                    OpenMeteoWeatherData(
+                                        locationName = locName,
+                                        temperature = temp,
+                                        apparentTemp = appTemp,
+                                        humidity = humidity,
+                                        windSpeed = wind,
+                                        rainProbPercentage = rainProb,
+                                        visibilityKm = visKm,
+                                        conditionText = condition,
+                                        isWetRoadCaution = isCaution
+                                    )
+                                } else null
                             } else null
                         } else null
                     }
                 }
 
-                if (data != null) {
-                    weatherData = data
+                if (result != null) {
+                    weatherData = result
                 } else {
-                    isError = true
+                    errorMessage = "Failed to parse Open-Meteo weather response."
                 }
             } catch (e: Exception) {
-                isError = true
+                errorMessage = "Network error: Unable to connect to Open-Meteo weather service."
             } finally {
                 isLoading = false
             }
         }
     }
 
-    LaunchedEffect(selectedLocation) {
-        fetchWeatherData(selectedLocation)
+    LaunchedEffect(currentLat, currentLon, selectedLocationName) {
+        fetchWeatherFromOpenMeteo(currentLat, currentLon, selectedLocationName)
     }
 
     Scaffold(
@@ -145,7 +176,7 @@ fun WeatherRoadConditionsScreen(navController: NavController) {
                     }
                 },
                 actions = {
-                    IconButton(onClick = { fetchWeatherData(selectedLocation) }) {
+                    IconButton(onClick = { fetchWeatherFromOpenMeteo(currentLat, currentLon, selectedLocationName) }) {
                         Icon(imageVector = Icons.Default.Refresh, contentDescription = "Refresh", tint = primaryCyan)
                     }
                 }
@@ -162,28 +193,63 @@ fun WeatherRoadConditionsScreen(navController: NavController) {
         ) {
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Location Selector Chips
-            Text("SELECT RIDING ROUTE / REGION", color = textGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, modifier = Modifier.fillMaxWidth())
-            Spacer(modifier = Modifier.height(8.dp))
+            // Location Selector & GPS Trigger
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("SELECT RIDING REGION", color = textGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                TextButton(
+                    onClick = {
+                        val hasPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                        if (hasPermission) {
+                            selectedLocationName = "Current Location (GPS)"
+                            currentLat = 18.5204
+                            currentLon = 73.8567
+                        } else {
+                            locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                        }
+                    }
+                ) {
+                    Icon(imageVector = Icons.Default.MyLocation, contentDescription = "GPS", tint = primaryCyan, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Use My GPS", color = primaryCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 AssistChip(
-                    onClick = { selectedLocation = "Pune (Western Ghats)" },
+                    onClick = {
+                        selectedLocationName = "Pune Ghats"
+                        currentLat = 18.5204
+                        currentLon = 73.8567
+                    },
                     label = { Text("Pune Ghats", fontSize = 11.sp, color = textWhite) },
-                    colors = AssistChipDefaults.assistChipColors(containerColor = if (selectedLocation.contains("Pune")) cardColor else backgroundColor)
+                    colors = AssistChipDefaults.assistChipColors(containerColor = if (selectedLocationName.contains("Pune")) cardColor else backgroundColor)
                 )
                 AssistChip(
-                    onClick = { selectedLocation = "Mahabaleshwar Pass" },
+                    onClick = {
+                        selectedLocationName = "Mahabaleshwar Pass"
+                        currentLat = 17.9237
+                        currentLon = 73.6586
+                    },
                     label = { Text("Mahabaleshwar", fontSize = 11.sp, color = textWhite) },
-                    colors = AssistChipDefaults.assistChipColors(containerColor = if (selectedLocation.contains("Mahabaleshwar")) cardColor else backgroundColor)
+                    colors = AssistChipDefaults.assistChipColors(containerColor = if (selectedLocationName.contains("Mahabaleshwar")) cardColor else backgroundColor)
                 )
                 AssistChip(
-                    onClick = { selectedLocation = "Lonavala Highway" },
+                    onClick = {
+                        selectedLocationName = "Lonavala Highway"
+                        currentLat = 18.7557
+                        currentLon = 73.4091
+                    },
                     label = { Text("Lonavala", fontSize = 11.sp, color = textWhite) },
-                    colors = AssistChipDefaults.assistChipColors(containerColor = if (selectedLocation.contains("Lonavala")) cardColor else backgroundColor)
+                    colors = AssistChipDefaults.assistChipColors(containerColor = if (selectedLocationName.contains("Lonavala")) cardColor else backgroundColor)
                 )
             }
 
@@ -199,10 +265,10 @@ fun WeatherRoadConditionsScreen(navController: NavController) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator(color = primaryCyan)
                         Spacer(modifier = Modifier.height(12.dp))
-                        Text("Fetching Open-Meteo live weather data...", color = textGrey, fontSize = 12.sp)
+                        Text("Querying live Open-Meteo weather API...", color = textGrey, fontSize = 12.sp)
                     }
                 }
-            } else if (isError || weatherData == null) {
+            } else if (errorMessage != null || weatherData == null) {
                 Card(
                     colors = CardDefaults.cardColors(containerColor = cardColor),
                     shape = RoundedCornerShape(16.dp),
@@ -212,22 +278,22 @@ fun WeatherRoadConditionsScreen(navController: NavController) {
                         modifier = Modifier.padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("Weather Data Unavailable", color = textWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text("Weather Connection Error", color = ErrorRed, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(6.dp))
-                        Text("Unable to connect to Open-Meteo weather service. Check your internet connection.", color = textGrey, fontSize = 12.sp)
+                        Text(errorMessage ?: "Unable to retrieve weather data.", color = textGrey, fontSize = 12.sp)
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(
-                            onClick = { fetchWeatherData(selectedLocation) },
+                            onClick = { fetchWeatherFromOpenMeteo(currentLat, currentLon, selectedLocationName) },
                             colors = ButtonDefaults.buttonColors(containerColor = primaryCyan)
                         ) {
-                            Text("Retry Weather Update", color = MidnightNavy, fontWeight = FontWeight.Bold)
+                            Text("Retry Open-Meteo Query", color = MidnightNavy, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
             } else {
                 val data = weatherData!!
 
-                // Weather Overview Card
+                // Weather Main Display Card
                 Card(
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(containerColor = cardColor),
@@ -241,12 +307,17 @@ fun WeatherRoadConditionsScreen(navController: NavController) {
                     ) {
                         Text(data.locationName.uppercase(), color = primaryCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(String.format(Locale.US, "%.1f°C", data.temperature), color = textWhite, fontSize = 48.sp, fontWeight = FontWeight.ExtraBold)
-                        Text("Feels like ${String.format(Locale.US, "%.1f°C", data.apparentTemp)}", color = textGrey, fontSize = 13.sp)
+
+                        if (!data.temperature.isNaN()) {
+                            Text(String.format(Locale.US, "%.1f°C", data.temperature), color = textWhite, fontSize = 48.sp, fontWeight = FontWeight.ExtraBold)
+                        }
+                        if (!data.apparentTemp.isNaN()) {
+                            Text("Feels like ${String.format(Locale.US, "%.1f°C", data.apparentTemp)}", color = textGrey, fontSize = 13.sp)
+                        }
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Road Status Caution Banner
+                        // Road Condition Caution Banner
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -268,40 +339,44 @@ fun WeatherRoadConditionsScreen(navController: NavController) {
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Detailed Weather Metrics Grid
+                // Returned Metrics Grid
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Card(
-                        modifier = Modifier.weight(1f),
-                        colors = CardDefaults.cardColors(containerColor = cardColor),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = Icons.Default.WaterDrop, contentDescription = "Rain", tint = primaryCyan, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("RAIN PROB.", color = textGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    if (data.rainProbPercentage != null) {
+                        Card(
+                            modifier = Modifier.weight(1f),
+                            colors = CardDefaults.cardColors(containerColor = cardColor),
+                            shape = RoundedCornerShape(14.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(imageVector = Icons.Default.WaterDrop, contentDescription = "Rain", tint = primaryCyan, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("RAIN PROB.", color = textGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text("${data.rainProbPercentage}%", color = textWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                             }
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text("${data.rainProb}%", color = textWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         }
                     }
 
-                    Card(
-                        modifier = Modifier.weight(1f),
-                        colors = CardDefaults.cardColors(containerColor = cardColor),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = Icons.Default.Air, contentDescription = "Wind", tint = secondaryOrange, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("WIND SPEED", color = textGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    if (!data.windSpeed.isNaN()) {
+                        Card(
+                            modifier = Modifier.weight(1f),
+                            colors = CardDefaults.cardColors(containerColor = cardColor),
+                            shape = RoundedCornerShape(14.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(imageVector = Icons.Default.Air, contentDescription = "Wind", tint = secondaryOrange, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("WIND SPEED", color = textGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(String.format(Locale.US, "%.1f km/h", data.windSpeed), color = textWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                             }
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(String.format(Locale.US, "%.1f km/h", data.windSpeed), color = textWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -312,35 +387,39 @@ fun WeatherRoadConditionsScreen(navController: NavController) {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Card(
-                        modifier = Modifier.weight(1f),
-                        colors = CardDefaults.cardColors(containerColor = cardColor),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = Icons.Default.Thermostat, contentDescription = "Humidity", tint = primaryCyan, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("HUMIDITY", color = textGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    if (data.humidity >= 0) {
+                        Card(
+                            modifier = Modifier.weight(1f),
+                            colors = CardDefaults.cardColors(containerColor = cardColor),
+                            shape = RoundedCornerShape(14.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(imageVector = Icons.Default.Thermostat, contentDescription = "Humidity", tint = primaryCyan, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("HUMIDITY", color = textGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text("${data.humidity}%", color = textWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                             }
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text("${data.humidity}%", color = textWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         }
                     }
 
-                    Card(
-                        modifier = Modifier.weight(1f),
-                        colors = CardDefaults.cardColors(containerColor = cardColor),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = Icons.Default.CloudQueue, contentDescription = "Visibility", tint = SuccessGreen, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("VISIBILITY", color = textGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    if (data.visibilityKm != null) {
+                        Card(
+                            modifier = Modifier.weight(1f),
+                            colors = CardDefaults.cardColors(containerColor = cardColor),
+                            shape = RoundedCornerShape(14.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(imageVector = Icons.Default.CloudQueue, contentDescription = "Visibility", tint = SuccessGreen, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("VISIBILITY", color = textGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(String.format(Locale.US, "%.1f km", data.visibilityKm), color = textWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                             }
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text("10 km (Clear)", color = textWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

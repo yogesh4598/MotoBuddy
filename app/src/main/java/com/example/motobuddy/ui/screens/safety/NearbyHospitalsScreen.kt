@@ -9,9 +9,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Navigation
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,6 +25,7 @@ import com.example.motobuddy.mapping.OsmRouteProvider
 import com.example.motobuddy.mapping.PlaceSearchResult
 import com.example.motobuddy.ui.theme.*
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,38 +36,35 @@ fun NearbyHospitalsScreen(navController: NavController) {
     val backgroundColor = MaterialTheme.colorScheme.background
     val cardColor = MaterialTheme.colorScheme.surface
     val primaryCyan = MaterialTheme.colorScheme.primary
-    val secondaryOrange = MaterialTheme.colorScheme.secondary
     val textWhite = MaterialTheme.colorScheme.onBackground
     val textGrey = MaterialTheme.colorScheme.onSurfaceVariant
 
     val hospitalList = remember { mutableStateListOf<PlaceSearchResult>() }
     var isLoading by remember { mutableStateOf(true) }
+    var isError by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
+    fun fetchHospitals() {
         coroutineScope.launch {
-            val results = OsmRouteProvider.searchNearbyPlaces("hospital", "Pune")
-            hospitalList.clear()
-            hospitalList.addAll(results)
-            if (hospitalList.isEmpty()) {
-                hospitalList.addAll(
-                    listOf(
-                        PlaceSearchResult(id = "1", name = "Apex City Trauma & Emergency Hospital", address = "Kothrud, Pune · 2.1 km", category = "Hospital", distanceKm = 2.1),
-                        PlaceSearchResult(id = "2", name = "Sanjivani Multispecialty Medical Center", address = "Deccan, Pune · 4.5 km", category = "Hospital", distanceKm = 4.5),
-                        PlaceSearchResult(id = "3", name = "Sahyadri Emergency Hospital", address = "Karve Nagar, Pune · 5.8 km", category = "Hospital", distanceKm = 5.8)
-                    )
-                )
+            isLoading = true
+            isError = false
+            try {
+                val results = OsmRouteProvider.searchNearbyPlaces("hospital", "Pune")
+                hospitalList.clear()
+                hospitalList.addAll(results)
+            } catch (e: Exception) {
+                isError = true
+            } finally {
+                isLoading = false
             }
-            isLoading = false
         }
     }
 
-    fun callEmergencyDesk(phone: String) {
-        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone"))
-        context.startActivity(intent)
+    LaunchedEffect(Unit) {
+        fetchHospitals()
     }
 
-    fun navigateToHospital(name: String) {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=${Uri.encode(name)}"))
+    fun navigateToHospital(address: String) {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=${Uri.encode(address)}"))
         context.startActivity(Intent.createChooser(intent, "Navigate to Hospital:"))
     }
 
@@ -74,11 +72,16 @@ fun NearbyHospitalsScreen(navController: NavController) {
         containerColor = backgroundColor,
         topBar = {
             TopAppBar(
-                title = { Text("24x7 Emergency Hospitals", color = textWhite, fontWeight = FontWeight.Bold) },
+                title = { Text("Hospitals (OpenStreetMap)", color = textWhite, fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = backgroundColor),
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = primaryCyan)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { fetchHospitals() }) {
+                        Icon(imageVector = Icons.Default.Refresh, contentDescription = "Refresh", tint = primaryCyan)
                     }
                 }
             )
@@ -107,19 +110,54 @@ fun NearbyHospitalsScreen(navController: NavController) {
                         Icon(imageVector = Icons.Default.LocalHospital, contentDescription = "Hospital", tint = ErrorRed, modifier = Modifier.size(24.dp))
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
-                            Text("24x7 TRAUMA & AMBULANCE RESPONSE", color = ErrorRed, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                            Text("OpenStreetMap Emergency Hospital Locator", color = textWhite, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text("OPEN-SOURCE HOSPITAL LOCATOR", color = ErrorRed, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                            Text("OpenStreetMap Real-Time Search Results", color = textWhite, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("NEARBY HOSPITALS & TRAUMA CENTERS", color = textGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             }
 
             if (isLoading) {
                 item {
-                    Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = primaryCyan)
+                    Box(modifier = Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(color = primaryCyan)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("Searching OpenStreetMap for nearby medical facilities...", color = textGrey, fontSize = 12.sp)
+                        }
+                    }
+                }
+            } else if (isError) {
+                item {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = cardColor),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("Unable to fetch hospital places", color = textWhite, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text("Network error occurred while querying OpenStreetMap Nominatim.", color = textGrey, fontSize = 12.sp)
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Button(onClick = { fetchHospitals() }, colors = ButtonDefaults.buttonColors(containerColor = primaryCyan)) {
+                                Text("Retry Search", color = MidnightNavy, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            } else if (hospitalList.isEmpty()) {
+                item {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = cardColor),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("No Hospitals Found", color = textWhite, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text("No hospital places returned by OpenStreetMap for this search area.", color = textGrey, fontSize = 12.sp)
+                        }
                     }
                 }
             } else {
@@ -135,40 +173,26 @@ fun NearbyHospitalsScreen(navController: NavController) {
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(hospital.name, color = textWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                                Text("${hospital.distanceKm ?: 2.0} km", color = primaryCyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text(hospital.name, color = textWhite, fontSize = 15.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                                if (hospital.distanceKm != null) {
+                                    Text(String.format(Locale.US, "%.1f km", hospital.distanceKm), color = primaryCyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
                             }
 
                             Spacer(modifier = Modifier.height(4.dp))
-                            Text(hospital.address, color = textGrey, fontSize = 12.sp)
+                            Text(hospital.address, color = textGrey, fontSize = 12.sp, maxLines = 2)
 
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.height(14.dp))
 
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            OutlinedButton(
+                                onClick = { navigateToHospital(hospital.address) },
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = primaryCyan),
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.fillMaxWidth().height(42.dp)
                             ) {
-                                Button(
-                                    onClick = { callEmergencyDesk("108") },
-                                    colors = ButtonDefaults.buttonColors(containerColor = ErrorRed),
-                                    shape = RoundedCornerShape(10.dp),
-                                    modifier = Modifier.weight(1f).height(44.dp)
-                                ) {
-                                    Icon(imageVector = Icons.Default.Call, contentDescription = "Call", tint = textWhite, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Call 108", color = textWhite, fontWeight = FontWeight.Bold)
-                                }
-
-                                OutlinedButton(
-                                    onClick = { navigateToHospital(hospital.name) },
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = primaryCyan),
-                                    shape = RoundedCornerShape(10.dp),
-                                    modifier = Modifier.weight(1f).height(44.dp)
-                                ) {
-                                    Icon(imageVector = Icons.Default.Navigation, contentDescription = "Nav", tint = primaryCyan, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Navigate", fontWeight = FontWeight.Bold)
-                                }
+                                Icon(imageVector = Icons.Default.Navigation, contentDescription = "Nav", tint = primaryCyan, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Navigate to Place", fontWeight = FontWeight.Bold)
                             }
                         }
                     }

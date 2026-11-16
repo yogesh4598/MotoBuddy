@@ -8,6 +8,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.URLEncoder
 import java.util.UUID
+import kotlin.math.*
 
 object OsmRouteProvider : MapProvider, RouteProvider, PlaceSearchProvider {
     override val providerName: String = "OpenStreetMap / OSRM Open Routing Engine"
@@ -62,7 +63,6 @@ object OsmRouteProvider : MapProvider, RouteProvider, PlaceSearchProvider {
             e.printStackTrace()
         }
 
-        // Calculation fallback based on string length & estimate if offline
         val estDist = (origin.length + destination.length) * 5.5 + 45.0
         return@withContext RouteResult(
             origin = origin,
@@ -102,12 +102,19 @@ object OsmRouteProvider : MapProvider, RouteProvider, PlaceSearchProvider {
         }
     }
 
-    override suspend fun searchNearbyPlaces(query: String, location: String?): List<PlaceSearchResult> = withContext(Dispatchers.IO) {
+    override suspend fun searchNearbyPlaces(query: String, location: String?): List<PlaceSearchResult> = searchNearbyPlacesWithCoords(query, location, null, null)
+
+    suspend fun searchNearbyPlacesWithCoords(query: String, location: String?, userLat: Double?, userLon: Double?): List<PlaceSearchResult> = withContext(Dispatchers.IO) {
         val list = mutableListOf<PlaceSearchResult>()
         try {
             val q = if (location.isNullOrBlank()) query else "$query in $location"
             val encoded = URLEncoder.encode(q, "UTF-8")
-            val url = "https://nominatim.openstreetmap.org/search?format=json&q=$encoded&limit=10"
+            val url = if (userLat != null && userLon != null) {
+                "https://nominatim.openstreetmap.org/search?format=json&q=$encoded&lat=$userLat&lon=$userLon&limit=15"
+            } else {
+                "https://nominatim.openstreetmap.org/search?format=json&q=$encoded&limit=15"
+            }
+
             val request = Request.Builder()
                 .url(url)
                 .header("User-Agent", "MotoBuddyAndroid/1.0")
@@ -120,15 +127,23 @@ object OsmRouteProvider : MapProvider, RouteProvider, PlaceSearchProvider {
                         val array = JSONArray(body)
                         for (i in 0 until array.length()) {
                             val obj = array.getJSONObject(i)
+                            val placeLat = obj.optDouble("lat", 0.0)
+                            val placeLon = obj.optDouble("lon", 0.0)
+                            val dist = if (userLat != null && userLon != null && placeLat != 0.0 && placeLon != 0.0) {
+                                haversineKm(userLat, userLon, placeLat, placeLon)
+                            } else {
+                                null
+                            }
+
                             list.add(
                                 PlaceSearchResult(
                                     id = UUID.randomUUID().toString(),
                                     name = obj.optString("display_name").split(",").firstOrNull() ?: query,
                                     address = obj.optString("display_name"),
                                     category = query,
-                                    distanceKm = (i + 1) * 1.5,
-                                    latitude = obj.optDouble("lat"),
-                                    longitude = obj.optDouble("lon")
+                                    distanceKm = dist,
+                                    latitude = placeLat,
+                                    longitude = placeLon
                                 )
                             )
                         }
@@ -139,5 +154,16 @@ object OsmRouteProvider : MapProvider, RouteProvider, PlaceSearchProvider {
             e.printStackTrace()
         }
         return@withContext list
+    }
+
+    private fun haversineKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val r = 6371.0 // Earth radius in km
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLon = Math.toRadians(lon2 - lon1)
+        val a = sin(dLat / 2) * sin(dLat / 2) +
+                cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
+                sin(dLon / 2) * sin(dLon / 2)
+        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+        return r * c
     }
 }
