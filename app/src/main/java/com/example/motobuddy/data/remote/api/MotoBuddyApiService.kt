@@ -24,6 +24,9 @@ interface MotoBuddyApiService {
     @POST("api/v1/motorcycles/index.php")
     suspend fun addMotorcycle(@Body motorcycle: MotorcycleDto): Response<ApiResponse<MotorcycleDto>>
 
+    @DELETE("api/v1/motorcycles/index.php")
+    suspend fun deleteMotorcycle(@Query("id") id: String): Response<ApiResponse<Unit>>
+
     @GET("api/v1/trips/index.php")
     suspend fun getTrips(): Response<ApiResponse<List<TripDto>>>
 
@@ -38,6 +41,9 @@ interface MotoBuddyApiService {
 
     @POST("api/v1/maintenance/index.php")
     suspend fun addMaintenanceRecord(@Body record: MaintenanceDto): Response<ApiResponse<MaintenanceDto>>
+
+    @DELETE("api/v1/maintenance/index.php")
+    suspend fun deleteMaintenanceRecord(@Query("id") id: String): Response<ApiResponse<Unit>>
 
     @POST("api/v1/mechanic/chat.php")
     suspend fun sendMechanicChatMessage(@Body request: ChatRequestDto): Response<ApiResponse<ChatResponseDto>>

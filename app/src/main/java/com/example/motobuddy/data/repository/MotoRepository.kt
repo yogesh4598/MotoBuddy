@@ -88,6 +88,16 @@ class MotoRepository(private val context: Context) {
         }
     }
 
+    fun deleteMotorcycle(id: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                apiService.deleteMotorcycle(id)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
     // Maintenance Records
     suspend fun fetchMaintenanceRecordsRemote(): Result<List<MaintenanceRecord>> = withContext(Dispatchers.IO) {
         try {
@@ -150,6 +160,7 @@ class MotoRepository(private val context: Context) {
             try {
                 apiService.addMaintenanceRecord(
                     MaintenanceDto(
+                        id = record.id,
                         title = record.title,
                         category = record.category,
                         date = record.date,
@@ -167,6 +178,13 @@ class MotoRepository(private val context: Context) {
     fun deleteMaintenanceRecord(id: String) {
         val list = getMaintenanceRecords().filter { it.id != id }
         saveMaintenanceList(list)
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                apiService.deleteMaintenanceRecord(id)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
     private fun saveMaintenanceList(list: List<MaintenanceRecord>) {
