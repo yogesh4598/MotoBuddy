@@ -23,7 +23,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.motobuddy.data.model.Trip
 import com.example.motobuddy.data.repository.MotoRepository
-import com.example.motobuddy.mapping.InAppMapView
+import com.example.motobuddy.mapping.MapLibreConstants
+import com.example.motobuddy.mapping.MapLibreNativeMapView
 import com.example.motobuddy.mapping.OsmRouteProvider
 import com.example.motobuddy.mapping.RoutePoint
 import com.example.motobuddy.navigation.Screen
@@ -111,24 +112,26 @@ fun RouteSelectionScreen(navController: NavController) {
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            // In-App Interactive Map Container
+            // Native MapLibre OpenFreeMap Vector Map Container
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = cardColor),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
+                    .height(220.dp)
                     .border(1.dp, primaryCyan.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
             ) {
-                InAppMapView(
+                MapLibreNativeMapView(
                     modifier = Modifier.fillMaxSize(),
-                    routePoints = routePointsList
+                    styleUrl = MapLibreConstants.OPENFREEMAP_LIBERTY_STYLE_URL,
+                    centerLatLng = MapLibreConstants.CHENNAI_LAT_LNG,
+                    zoomLevel = MapLibreConstants.DEFAULT_ZOOM
                 )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // OpenStreetMap Banner
+            // OpenFreeMap Liberty Vector Style Banner
             Card(
                 colors = CardDefaults.cardColors(containerColor = cardColor),
                 shape = RoundedCornerShape(12.dp),
@@ -141,10 +144,10 @@ fun RouteSelectionScreen(navController: NavController) {
                     Icon(imageVector = Icons.Default.Navigation, contentDescription = "OSM", tint = primaryCyan)
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
-                        Text("OpenStreetMap In-App Routing", color = textWhite, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text("MapLibre Native + OpenFreeMap Liberty", color = textWhite, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         Text(
-                            text = if (isCalculating) "Calculating OSRM route geometry..." else if (isOsmRoute) "Live route polyline rendered on map canvas" else routingErrorMsg ?: "Enter locations to query OSRM",
-                            color = if (routingErrorMsg != null) ErrorRed else textGrey,
+                            text = "Style: https://tiles.openfreemap.org/styles/liberty (Chennai, IN)",
+                            color = primaryCyan,
                             fontSize = 11.sp
                         )
                     }

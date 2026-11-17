@@ -48,6 +48,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
 
+    // MapLibre Native Android SDK for Open-Source Maps
+    implementation("org.maplibre.gl:android-sdk:11.5.1")
+
     // Location Services for Genuine Device GPS
     implementation("com.google.android.gms:play-services-location:21.3.0")
 
