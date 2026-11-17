@@ -7,6 +7,7 @@ import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.URLEncoder
+import java.util.Locale
 import java.util.UUID
 import kotlin.math.*
 
@@ -26,7 +27,12 @@ object OsmRouteProvider : MapProvider, RouteProvider, PlaceSearchProvider {
             val destCoord = geocodeLocation(destination)
 
             if (originCoord != null && destCoord != null) {
-                val url = "https://router.project-osrm.org/route/v1/driving/${originCoord.second},${originCoord.first};${destCoord.second},${destCoord.first}?overview=full&geometries=geojson"
+                val url = String.format(
+                    Locale.US,
+                    "https://router.project-osrm.org/route/v1/driving/%.6f,%.6f;%.6f,%.6f?overview=full&geometries=geojson",
+                    originCoord.second, originCoord.first,
+                    destCoord.second, destCoord.first
+                )
                 val request = Request.Builder()
                     .url(url)
                     .header("User-Agent", "MotoBuddyAndroid/1.0 (contact@motobuddy.app)")
@@ -127,7 +133,7 @@ object OsmRouteProvider : MapProvider, RouteProvider, PlaceSearchProvider {
             val q = if (location.isNullOrBlank()) query else "$query in $location"
             val encoded = URLEncoder.encode(q, "UTF-8")
             val url = if (userLat != null && userLon != null) {
-                "https://nominatim.openstreetmap.org/search?format=json&q=$encoded&lat=$userLat&lon=$userLon&limit=15"
+                String.format(Locale.US, "https://nominatim.openstreetmap.org/search?format=json&q=%s&lat=%.6f&lon=%.6f&limit=15", encoded, userLat, userLon)
             } else {
                 "https://nominatim.openstreetmap.org/search?format=json&q=$encoded&limit=15"
             }
