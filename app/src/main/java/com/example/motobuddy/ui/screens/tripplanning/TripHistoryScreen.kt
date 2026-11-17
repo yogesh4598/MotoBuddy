@@ -21,15 +21,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.motobuddy.data.model.Trip
 import com.example.motobuddy.data.repository.MotoRepository
 import com.example.motobuddy.ui.theme.*
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TripHistoryScreen(navController: NavController) {
     val context = LocalContext.current
     val repository = remember { MotoRepository(context) }
-    var trips by remember { mutableStateOf(repository.getSavedTrips()) }
+    val coroutineScope = rememberCoroutineScope()
+    val trips = remember { mutableStateListOf<Trip>() }
+    var isLoading by remember { mutableStateOf(true) }
 
     val backgroundColor = MaterialTheme.colorScheme.background
     val cardColor = MaterialTheme.colorScheme.surface
@@ -37,6 +41,15 @@ fun TripHistoryScreen(navController: NavController) {
     val secondaryOrange = MaterialTheme.colorScheme.secondary
     val textWhite = MaterialTheme.colorScheme.onBackground
     val textGrey = MaterialTheme.colorScheme.onSurfaceVariant
+
+    LaunchedEffect(Unit) {
+        coroutineScope.launch {
+            val remoteResult = repository.fetchSavedTripsRemote()
+            trips.clear()
+            trips.addAll(remoteResult.getOrDefault(repository.getSavedTrips()))
+            isLoading = false
+        }
+    }
 
     fun launchExternalNavigation(destination: String) {
         val geoUri = Uri.parse("geo:0,0?q=${Uri.encode(destination)}")
@@ -77,61 +90,83 @@ fun TripHistoryScreen(navController: NavController) {
                 }
             }
 
-            items(trips) { trip ->
-                Card(
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = cardColor),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(1.dp, DividerBorderColor, RoundedCornerShape(16.dp))
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(text = trip.title, color = textWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                            IconButton(onClick = {
-                                repository.deleteTrip(trip.id)
-                                trips = repository.getSavedTrips()
-                            }) {
-                                Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete", tint = Color.Gray)
-                            }
+            if (isLoading) {
+                item {
+                    Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = primaryCyan)
+                    }
+                }
+            } else if (trips.isEmpty()) {
+                item {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = cardColor),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("No Saved Trips", color = textWhite, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text("Use 'Plan Custom Route' to calculate and save new trips to your account.", color = textGrey, fontSize = 12.sp)
                         }
-
-                        Text(text = "${trip.startLocation} → ${trip.destination}", color = primaryCyan, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column {
-                                Text("Distance", color = textGrey, fontSize = 10.sp)
-                                Text("${trip.distanceKm.toInt()} km", color = textWhite, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            } else {
+                items(trips) { trip ->
+                    Card(
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = cardColor),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(1.dp, DividerBorderColor, RoundedCornerShape(16.dp))
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(text = trip.title, color = textWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                IconButton(onClick = {
+                                    repository.deleteTrip(trip.id)
+                                    trips.remove(trip)
+                                }) {
+                                    Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete", tint = Color.Gray)
+                                }
                             }
-                            Column {
-                                Text("Fuel Cost", color = textGrey, fontSize = 10.sp)
-                                Text("₹${trip.fuelCostEst.toInt()}", color = secondaryOrange, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                            }
-                            Column {
-                                Text("Duration", color = textGrey, fontSize = 10.sp)
-                                Text("${trip.estDurationHours} hrs", color = textWhite, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                            Text(text = "${trip.startLocation} → ${trip.destination}", color = primaryCyan, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                            Spacer(modifier = Modifier.height(12.dp))
 
-                        Button(
-                            onClick = { launchExternalNavigation(trip.destination) },
-                            colors = ButtonDefaults.buttonColors(containerColor = primaryCyan),
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.fillMaxWidth().height(44.dp)
-                        ) {
-                            Icon(imageVector = Icons.Default.Navigation, contentDescription = "Navigate", tint = MidnightNavy, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Launch External Navigation", color = MidnightNavy, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column {
+                                    Text("Distance", color = textGrey, fontSize = 10.sp)
+                                    Text("${trip.distanceKm.toInt()} km", color = textWhite, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                }
+                                Column {
+                                    Text("Fuel Cost", color = textGrey, fontSize = 10.sp)
+                                    Text("₹${trip.fuelCostEst.toInt()}", color = secondaryOrange, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                }
+                                Column {
+                                    Text("Duration", color = textGrey, fontSize = 10.sp)
+                                    Text("${trip.estDurationHours} hrs", color = textWhite, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Button(
+                                onClick = { launchExternalNavigation(trip.destination) },
+                                colors = ButtonDefaults.buttonColors(containerColor = primaryCyan),
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.fillMaxWidth().height(44.dp)
+                            ) {
+                                Icon(imageVector = Icons.Default.Navigation, contentDescription = "Navigate", tint = MidnightNavy, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Launch External Navigation", color = MidnightNavy, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            }
                         }
                     }
                 }

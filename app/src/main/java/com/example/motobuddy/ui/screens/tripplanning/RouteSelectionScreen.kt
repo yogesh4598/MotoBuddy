@@ -2,24 +2,24 @@ package com.example.motobuddy.ui.screens.tripplanning
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BookmarkAdd
+import androidx.compose.material.icons.filled.DirectionsBike
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -34,6 +34,9 @@ import java.util.Locale
 fun RouteSelectionScreen(navController: NavController) {
     val context = LocalContext.current
     val repository = remember { MotoRepository(context) }
+    val motorcycle = remember { repository.getMotorcycle() }
+    val fuelLogs = remember { repository.getFuelEntries() }
+    val avgMileage = remember { repository.calculateAverageMileage(fuelLogs) }
 
     val backgroundColor = MaterialTheme.colorScheme.background
     val cardColor = MaterialTheme.colorScheme.surface
@@ -44,27 +47,42 @@ fun RouteSelectionScreen(navController: NavController) {
 
     var startLoc by remember { mutableStateOf("Pune") }
     var destLoc by remember { mutableStateOf("Mahabaleshwar") }
+    var customMileageInput by remember { mutableStateOf(String.format(Locale.US, "%.1f", avgMileage)) }
+    var customFuelPriceInput by remember { mutableStateOf("104.5") }
     var tripSavedSuccess by remember { mutableStateOf(false) }
 
     var isCalculating by remember { mutableStateOf(false) }
-    var calculatedDistKm by remember { mutableStateOf(120.0) }
-    var calculatedDurationMins by remember { mutableStateOf(180.0) }
-    var isOsmRoute by remember { mutableStateOf(true) }
+    var calculatedDistKm by remember { mutableStateOf(0.0) }
+    var calculatedDurationMins by remember { mutableStateOf(0.0) }
+    var isOsmRoute by remember { mutableStateOf(false) }
+    var routingErrorMsg by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(startLoc, destLoc) {
         if (startLoc.isNotBlank() && destLoc.isNotBlank()) {
             isCalculating = true
-            val route = OsmRouteProvider.calculateRoute(startLoc, destLoc)
-            calculatedDistKm = route.distanceKm
-            calculatedDurationMins = route.estimatedDurationMinutes
-            isOsmRoute = route.isRealTimeRouting
+            routingErrorMsg = null
+            val route = OsmRouteProvider.calculateRoute(startLoc.trim(), destLoc.trim())
+            if (route.isRealTimeRouting && route.distanceKm > 0.0) {
+                calculatedDistKm = route.distanceKm
+                calculatedDurationMins = route.estimatedDurationMinutes
+                isOsmRoute = true
+            } else {
+                isOsmRoute = false
+                calculatedDistKm = 0.0
+                calculatedDurationMins = 0.0
+                routingErrorMsg = "Unable to find route for '$startLoc' → '$destLoc'. Please verify location names."
+            }
             isCalculating = false
         }
     }
 
+    val parsedMileage = remember(customMileageInput) { customMileageInput.toDoubleOrNull() ?: avgMileage }
+    val parsedFuelPrice = remember(customFuelPriceInput) { customFuelPriceInput.toDoubleOrNull() ?: 104.5 }
+
     val distanceKm = calculatedDistKm
-    val estHours = remember(calculatedDurationMins) { String.format(Locale.US, "%.1f", calculatedDurationMins / 60.0).toDoubleOrNull() ?: 3.0 }
-    val fuelCostEst = remember(distanceKm) { (distanceKm / 35.0) * 104.5 }
+    val estHours = remember(calculatedDurationMins) { String.format(Locale.US, "%.1f", calculatedDurationMins / 60.0).toDoubleOrNull() ?: 0.0 }
+    val fuelLiters = remember(distanceKm, parsedMileage) { if (parsedMileage > 0) distanceKm / parsedMileage else 0.0 }
+    val fuelCostEst = remember(fuelLiters, parsedFuelPrice) { fuelLiters * parsedFuelPrice }
 
     fun launchExternalNavigation(destination: String) {
         val geoUri = Uri.parse("geo:0,0?q=${Uri.encode(destination)}")
@@ -108,10 +126,10 @@ fun RouteSelectionScreen(navController: NavController) {
                     Icon(imageVector = Icons.Default.Navigation, contentDescription = "OSM", tint = primaryCyan)
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
-                        Text("OpenStreetMap Routing", color = textWhite, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text("OpenStreetMap Routing Engine", color = textWhite, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         Text(
-                            text = if (isCalculating) "Calculating route via OSRM Engine..." else if (isOsmRoute) "Live route calculated via OpenStreetMap OSRM" else "Routing estimate fallback active",
-                            color = textGrey,
+                            text = if (isCalculating) "Calculating route via OSRM..." else if (isOsmRoute) "Live route calculated via OpenStreetMap OSRM" else routingErrorMsg ?: "Enter locations to query OSRM",
+                            color = if (routingErrorMsg != null) ErrorRed else textGrey,
                             fontSize = 11.sp
                         )
                     }
@@ -155,6 +173,49 @@ fun RouteSelectionScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth()
             )
 
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Motorcycle & Fuel Configuration Card
+            Card(
+                colors = CardDefaults.cardColors(containerColor = cardColor),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(imageVector = Icons.Default.DirectionsBike, contentDescription = "Bike", tint = secondaryOrange, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("GARAGE MOTORCYCLE & FUEL COST PARAMS", color = textGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("${motorcycle.make} ${motorcycle.model}", color = textWhite, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = customMileageInput,
+                            onValueChange = { customMileageInput = it },
+                            label = { Text("Mileage (km/L)", color = textGrey, fontSize = 11.sp) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = primaryCyan, unfocusedBorderColor = DividerBorderColor, focusedTextColor = textWhite, unfocusedTextColor = textWhite),
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = customFuelPriceInput,
+                            onValueChange = { customFuelPriceInput = it },
+                            label = { Text("Fuel Price (₹/L)", color = textGrey, fontSize = 11.sp) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = primaryCyan, unfocusedBorderColor = DividerBorderColor, focusedTextColor = textWhite, unfocusedTextColor = textWhite),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
 
             // Route Calculation Result Card
@@ -166,7 +227,7 @@ fun RouteSelectionScreen(navController: NavController) {
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
-                    Text("ROUTE SUMMARY", color = textGrey, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    Text("OSRM ROUTE SUMMARY", color = textGrey, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("$startLoc → $destLoc", color = textWhite, fontSize = 20.sp, fontWeight = FontWeight.Bold)
 
@@ -178,16 +239,21 @@ fun RouteSelectionScreen(navController: NavController) {
                     ) {
                         Column {
                             Text("Distance", color = textGrey, fontSize = 11.sp)
-                            Text("${distanceKm.toInt()} km", color = textWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            Text(if (distanceKm > 0) "${distanceKm.toInt()} km" else "N/A", color = textWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         }
                         Column {
                             Text("Duration", color = textGrey, fontSize = 11.sp)
-                            Text("$estHours hrs", color = textWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            Text(if (distanceKm > 0) "$estHours hrs" else "N/A", color = textWhite, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         }
                         Column {
                             Text("Est. Fuel Cost", color = textGrey, fontSize = 11.sp)
-                            Text("₹${fuelCostEst.toInt()}", color = secondaryOrange, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            Text(if (distanceKm > 0) String.format(Locale.US, "₹%.0f", fuelCostEst) else "N/A", color = secondaryOrange, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         }
+                    }
+
+                    if (distanceKm > 0) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text("Est. ${String.format(Locale.US, "%.1f", fuelLiters)} Liters fuel @ ₹$parsedFuelPrice/L for $parsedMileage km/L", color = textGrey, fontSize = 10.sp)
                     }
                 }
             }
@@ -202,7 +268,7 @@ fun RouteSelectionScreen(navController: NavController) {
             // Save Trip Button
             Button(
                 onClick = {
-                    if (destLoc.isNotBlank()) {
+                    if (destLoc.isNotBlank() && distanceKm > 0) {
                         val newTrip = Trip(
                             title = "$startLoc to $destLoc Route",
                             startLocation = startLoc,
@@ -216,6 +282,7 @@ fun RouteSelectionScreen(navController: NavController) {
                         tripSavedSuccess = true
                     }
                 },
+                enabled = distanceKm > 0,
                 colors = ButtonDefaults.buttonColors(containerColor = primaryCyan),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
@@ -232,6 +299,7 @@ fun RouteSelectionScreen(navController: NavController) {
             // Start Navigation
             OutlinedButton(
                 onClick = { launchExternalNavigation(destLoc) },
+                enabled = destLoc.isNotBlank(),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = primaryCyan),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
