@@ -1,8 +1,6 @@
 package com.example.motobuddy.ui.screens.maintenance
 
 import android.Manifest
-import android.content.Intent
-import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
@@ -26,9 +24,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.motobuddy.mapping.InAppMapView
 import com.example.motobuddy.mapping.LocationHelper
 import com.example.motobuddy.mapping.OsmRouteProvider
 import com.example.motobuddy.mapping.PlaceSearchResult
+import com.example.motobuddy.navigation.Screen
 import com.example.motobuddy.ui.theme.*
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -52,6 +52,9 @@ fun NearbyPetrolPumpsScreen(navController: NavController) {
     var manualLocationQuery by remember { mutableStateOf("") }
     var locationStatusText by remember { mutableStateOf("Querying OpenStreetMap Nearby...") }
 
+    var userLat by remember { mutableStateOf(18.5204) }
+    var userLon by remember { mutableStateOf(73.8567) }
+
     fun fetchFuelStations(customLocation: String? = null) {
         coroutineScope.launch {
             isLoading = true
@@ -59,6 +62,8 @@ fun NearbyPetrolPumpsScreen(navController: NavController) {
             try {
                 val userLoc = LocationHelper.getCurrentLocation(context)
                 val results = if (userLoc != null && customLocation.isNullOrBlank()) {
+                    userLat = userLoc.latitude
+                    userLon = userLoc.longitude
                     locationStatusText = String.format(Locale.US, "GPS Center: %.3f, %.3f", userLoc.latitude, userLoc.longitude)
                     OsmRouteProvider.searchNearbyPlacesWithCoords("petrol pump", null, userLoc.latitude, userLoc.longitude)
                 } else if (!customLocation.isNullOrBlank()) {
@@ -94,11 +99,6 @@ fun NearbyPetrolPumpsScreen(navController: NavController) {
         }
     }
 
-    fun launchNavigation(address: String) {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=${Uri.encode(address)}"))
-        context.startActivity(Intent.createChooser(intent, "Navigate to Petrol Pump:"))
-    }
-
     Scaffold(
         containerColor = backgroundColor,
         topBar = {
@@ -127,12 +127,30 @@ fun NearbyPetrolPumpsScreen(navController: NavController) {
         ) {
             item {
                 Spacer(modifier = Modifier.height(4.dp))
+
+                // In-App Interactive Map Container
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = cardColor),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .border(1.dp, primaryCyan.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+                ) {
+                    InAppMapView(
+                        modifier = Modifier.fillMaxSize(),
+                        userLat = userLat,
+                        userLon = userLon,
+                        poiList = pumpList
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
                 Card(
                     colors = CardDefaults.cardColors(containerColor = cardColor),
                     shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(1.dp, primaryCyan.copy(alpha = 0.4f), RoundedCornerShape(14.dp))
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
                         modifier = Modifier.padding(16.dp),
@@ -141,7 +159,7 @@ fun NearbyPetrolPumpsScreen(navController: NavController) {
                         Icon(imageVector = Icons.Default.LocalGasStation, contentDescription = "Fuel", tint = secondaryOrange, modifier = Modifier.size(24.dp))
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
-                            Text("OPEN-SOURCE PETROL PUMP SEARCH", color = primaryCyan, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                            Text("IN-APP PETROL PUMP MAP SEARCH", color = primaryCyan, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                             Text(locationStatusText, color = textWhite, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
@@ -251,14 +269,14 @@ fun NearbyPetrolPumpsScreen(navController: NavController) {
                             Spacer(modifier = Modifier.height(14.dp))
 
                             OutlinedButton(
-                                onClick = { launchNavigation(pump.address) },
+                                onClick = { navController.navigate(Screen.RouteSelection.route) },
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = primaryCyan),
                                 shape = RoundedCornerShape(10.dp),
                                 modifier = Modifier.fillMaxWidth().height(42.dp)
                             ) {
                                 Icon(imageVector = Icons.Default.Navigation, contentDescription = "Nav", tint = primaryCyan, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Navigate to Place", fontWeight = FontWeight.Bold)
+                                Text("In-App Route To Fuel Station", fontWeight = FontWeight.Bold)
                             }
                         }
                     }

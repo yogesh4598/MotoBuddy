@@ -1,7 +1,5 @@
 package com.example.motobuddy.ui.screens.tripplanning
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -10,8 +8,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.DirectionsBike
 import androidx.compose.material.icons.filled.BookmarkAdd
-import androidx.compose.material.icons.filled.DirectionsBike
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,7 +23,10 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.motobuddy.data.model.Trip
 import com.example.motobuddy.data.repository.MotoRepository
+import com.example.motobuddy.mapping.InAppMapView
 import com.example.motobuddy.mapping.OsmRouteProvider
+import com.example.motobuddy.mapping.RoutePoint
+import com.example.motobuddy.navigation.Screen
 import com.example.motobuddy.ui.theme.*
 import java.util.Locale
 
@@ -54,6 +55,7 @@ fun RouteSelectionScreen(navController: NavController) {
     var isCalculating by remember { mutableStateOf(false) }
     var calculatedDistKm by remember { mutableStateOf(0.0) }
     var calculatedDurationMins by remember { mutableStateOf(0.0) }
+    var routePointsList by remember { mutableStateOf<List<RoutePoint>>(emptyList()) }
     var isOsmRoute by remember { mutableStateOf(false) }
     var routingErrorMsg by remember { mutableStateOf<String?>(null) }
 
@@ -65,11 +67,13 @@ fun RouteSelectionScreen(navController: NavController) {
             if (route.isRealTimeRouting && route.distanceKm > 0.0) {
                 calculatedDistKm = route.distanceKm
                 calculatedDurationMins = route.estimatedDurationMinutes
+                routePointsList = route.points
                 isOsmRoute = true
             } else {
                 isOsmRoute = false
                 calculatedDistKm = 0.0
                 calculatedDurationMins = 0.0
+                routePointsList = emptyList()
                 routingErrorMsg = "Unable to find route for '$startLoc' → '$destLoc'. Please verify location names."
             }
             isCalculating = false
@@ -83,12 +87,6 @@ fun RouteSelectionScreen(navController: NavController) {
     val estHours = remember(calculatedDurationMins) { String.format(Locale.US, "%.1f", calculatedDurationMins / 60.0).toDoubleOrNull() ?: 0.0 }
     val fuelLiters = remember(distanceKm, parsedMileage) { if (parsedMileage > 0) distanceKm / parsedMileage else 0.0 }
     val fuelCostEst = remember(fuelLiters, parsedFuelPrice) { fuelLiters * parsedFuelPrice }
-
-    fun launchExternalNavigation(destination: String) {
-        val geoUri = Uri.parse("geo:0,0?q=${Uri.encode(destination)}")
-        val mapIntent = Intent(Intent.ACTION_VIEW, geoUri)
-        context.startActivity(Intent.createChooser(mapIntent, "Open Navigation with:"))
-    }
 
     Scaffold(
         containerColor = backgroundColor,
@@ -113,6 +111,23 @@ fun RouteSelectionScreen(navController: NavController) {
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
+            // In-App Interactive Map Container
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = cardColor),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .border(1.dp, primaryCyan.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+            ) {
+                InAppMapView(
+                    modifier = Modifier.fillMaxSize(),
+                    routePoints = routePointsList
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             // OpenStreetMap Banner
             Card(
                 colors = CardDefaults.cardColors(containerColor = cardColor),
@@ -126,9 +141,9 @@ fun RouteSelectionScreen(navController: NavController) {
                     Icon(imageVector = Icons.Default.Navigation, contentDescription = "OSM", tint = primaryCyan)
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
-                        Text("OpenStreetMap Routing Engine", color = textWhite, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text("OpenStreetMap In-App Routing", color = textWhite, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         Text(
-                            text = if (isCalculating) "Calculating route via OSRM..." else if (isOsmRoute) "Live route calculated via OpenStreetMap OSRM" else routingErrorMsg ?: "Enter locations to query OSRM",
+                            text = if (isCalculating) "Calculating OSRM route geometry..." else if (isOsmRoute) "Live route polyline rendered on map canvas" else routingErrorMsg ?: "Enter locations to query OSRM",
                             color = if (routingErrorMsg != null) ErrorRed else textGrey,
                             fontSize = 11.sp
                         )
@@ -136,7 +151,7 @@ fun RouteSelectionScreen(navController: NavController) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Text Inputs
             OutlinedTextField(
@@ -173,7 +188,7 @@ fun RouteSelectionScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Motorcycle & Fuel Configuration Card
             Card(
@@ -183,7 +198,7 @@ fun RouteSelectionScreen(navController: NavController) {
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = Icons.Default.DirectionsBike, contentDescription = "Bike", tint = secondaryOrange, modifier = Modifier.size(18.dp))
+                        Icon(imageVector = Icons.AutoMirrored.Filled.DirectionsBike, contentDescription = "Bike", tint = secondaryOrange, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("GARAGE MOTORCYCLE & FUEL COST PARAMS", color = textGrey, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                     }
@@ -216,7 +231,7 @@ fun RouteSelectionScreen(navController: NavController) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Route Calculation Result Card
             Card(
@@ -258,7 +273,7 @@ fun RouteSelectionScreen(navController: NavController) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             if (tripSavedSuccess) {
                 Text("✓ Trip saved to your Saved Trips & MySQL database!", color = SuccessGreen, fontWeight = FontWeight.Bold, fontSize = 14.sp)
@@ -296,19 +311,19 @@ fun RouteSelectionScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Start Navigation
-            OutlinedButton(
-                onClick = { launchExternalNavigation(destLoc) },
-                enabled = destLoc.isNotBlank(),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = primaryCyan),
+            // Start In-App Live Navigation
+            Button(
+                onClick = { navController.navigate(Screen.LiveNavigation.route) },
+                enabled = destLoc.isNotBlank() && distanceKm > 0,
+                colors = ButtonDefaults.buttonColors(containerColor = secondaryOrange),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp)
             ) {
-                Icon(imageVector = Icons.Default.Navigation, contentDescription = "Navigate", tint = primaryCyan)
+                Icon(imageVector = Icons.Default.Navigation, contentDescription = "Navigate", tint = MidnightNavy)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Start Turn-By-Turn Navigation", fontWeight = FontWeight.Bold)
+                Text("Start In-App Live Navigation", color = MidnightNavy, fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(32.dp))

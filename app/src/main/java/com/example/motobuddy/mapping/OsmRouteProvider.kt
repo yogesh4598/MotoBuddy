@@ -26,7 +26,7 @@ object OsmRouteProvider : MapProvider, RouteProvider, PlaceSearchProvider {
             val destCoord = geocodeLocation(destination)
 
             if (originCoord != null && destCoord != null) {
-                val url = "https://router.project-osrm.org/route/v1/driving/${originCoord.second},${originCoord.first};${destCoord.second},${destCoord.first}?overview=false"
+                val url = "https://router.project-osrm.org/route/v1/driving/${originCoord.second},${originCoord.first};${destCoord.second},${destCoord.first}?overview=full&geometries=geojson"
                 val request = Request.Builder()
                     .url(url)
                     .header("User-Agent", "MotoBuddyAndroid/1.0 (contact@motobuddy.app)")
@@ -43,16 +43,32 @@ object OsmRouteProvider : MapProvider, RouteProvider, PlaceSearchProvider {
                                 val distanceMeters = route.optDouble("distance", 0.0)
                                 val durationSeconds = route.optDouble("duration", 0.0)
 
+                                val routePointsList = mutableListOf<RoutePoint>()
+                                val geometryObj = route.optJSONObject("geometry")
+                                if (geometryObj != null) {
+                                    val coordsArray = geometryObj.optJSONArray("coordinates")
+                                    if (coordsArray != null) {
+                                        for (i in 0 until coordsArray.length()) {
+                                            val coordPair = coordsArray.getJSONArray(i)
+                                            val lng = coordPair.getDouble(0)
+                                            val lat = coordPair.getDouble(1)
+                                            routePointsList.add(RoutePoint(lat, lng, ""))
+                                        }
+                                    }
+                                }
+
+                                if (routePointsList.isEmpty()) {
+                                    routePointsList.add(RoutePoint(originCoord.first, originCoord.second, origin))
+                                    routePointsList.add(RoutePoint(destCoord.first, destCoord.second, destination))
+                                }
+
                                 return@withContext RouteResult(
                                     origin = origin,
                                     destination = destination,
                                     distanceKm = distanceMeters / 1000.0,
                                     estimatedDurationMinutes = durationSeconds / 60.0,
                                     isRealTimeRouting = true,
-                                    points = listOf(
-                                        RoutePoint(originCoord.first, originCoord.second, origin),
-                                        RoutePoint(destCoord.first, destCoord.second, destination)
-                                    )
+                                    points = routePointsList
                                 )
                             }
                         }
@@ -69,11 +85,12 @@ object OsmRouteProvider : MapProvider, RouteProvider, PlaceSearchProvider {
             destination = destination,
             distanceKm = 0.0,
             estimatedDurationMinutes = 0.0,
-            isRealTimeRouting = false
+            isRealTimeRouting = false,
+            points = emptyList()
         )
     }
 
-    private fun geocodeLocation(query: String): Pair<Double, Double>? {
+    fun geocodeLocation(query: String): Pair<Double, Double>? {
         return try {
             val encoded = URLEncoder.encode(query, "UTF-8")
             val url = "https://nominatim.openstreetmap.org/search?format=json&q=$encoded&limit=1"
